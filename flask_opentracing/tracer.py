@@ -32,9 +32,7 @@ class FlaskTracer(opentracing.Tracer):
 			# if self.on:
 			request = stack.top.request
 			operation_name = request.endpoint
-			if operation_name is None:
-				operation_name = "Unknown (error finding endpoint)"
-			if(self._trace_all_requests or operation_name in self.traced_funcs):	
+			if(self._trace_all_requests or operation_name in self._traced_funcs):	
 				print "tracing " + str(operation_name)	
 
 				## Can get rid of this once the python tracer is updated
@@ -56,13 +54,8 @@ class FlaskTracer(opentracing.Tracer):
 							span.set_tag(attr, payload)
 					except:
 						span.set_tag("Error: Attribute does not exist", str(attr))
-						print "error with attr: " + str(attr)
 
 				self._current_spans[request] = span
-
-			else:
-				print "did not trace " + str(operation_name)
-				pass
 
 		@app.after_request
 		def end_span(response):
