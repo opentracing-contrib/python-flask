@@ -24,11 +24,11 @@ Second window:
 ```
 
 To test the traces, check what port the requester is running on and load
-localhost:port. Then navigate to /request/<\script>/<\int:numrequests> where
+localhost:port. Then navigate to `/request/<script>/<int:numrequests>` where
 script can either be "simple" or "childspan" and numrequests is the number of
 requests you want to send to the page. If you have a lightstep tracer token, you
 should be able to view the trace data on the lightstep interface. Otherwise, the
 commandline will print the trace information.
 
-(NOTE: if you wish to use a different opentracing tracer, simply replace
-ls_tracer with the OpenTracing tracer instance of your choice.)
+(NOTE: if you wish to use a different OpenTracing tracer, simply replace
+`ls_tracer` with the OpenTracing tracer instance of your choice.)

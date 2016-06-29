@@ -8,13 +8,14 @@ decorated with `@tracer.trace()`.
 ```python 
 import opentracing
 from flask_opentracing import FlaskTracer
+
 app = Flask(__name__)
 
 opentracing_tracer = ## some OpenTracing tracer implementation  
 tracer = FlaskTracer(opentracing_tracer)
 
-@app.route('/some_url') 
-@tracer.trace(optional_args) 
+@app.route('/some_url')
+@tracer.trace(optional_args)
 def some_view_func():
 	...     
 	return some_view 
