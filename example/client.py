@@ -11,20 +11,22 @@ import urllib2
 
 app = Flask(__name__)
 
-## could put this in an init_tracer method
-ls_tracer = lightstep.tracer.init_tracer(group_name="example requester", access_token="{your_lightstep_token}")
-tracer = FlaskTracer(ls_tracer, False, ["send_request", "send_multiple_requests"], app)
-tracer.trace_attributes("send_request", ["url", "url_rule", "method"])
-tracer.trace_attributes("send_multiple_requests", ["url", "url_rule", "method"])
+# could put this in an init_tracer method
+ls_tracer = lightstep.tracer.init_tracer(group_name="example client", access_token="{your_lightstep_token}")
+tracer = FlaskTracer(ls_tracer)
 
 @app.route("/")
 def index():
 	return "Index Page"
 
-## make a request to the responder
-## injects the current span into headers to continue trace
+
 @app.route("/request/<script>/<int:numrequests>")
+@tracer.trace("url")
 def send_multiple_requests(script, numrequests):
+	'''
+	Makes a request to the server
+	Injects the current span into headers to continue trace
+	'''
 	span = tracer.get_span(stack.top.request)
 	def send_request():
 		url = "http://localhost:5000/"+str(script)
@@ -38,11 +40,12 @@ def send_multiple_requests(script, numrequests):
 		send_request()
 	return "Requests sent"
 
-## just testing that the tracer works
 @app.route("/test")
+@tracer.trace()
 def test_lightstep_tracer():
-	span = tracer.start_span("tracer test")
+	'''
+	Simple function to ensure the tracer works.
+	'''
 	time.sleep(1)
-	span.finish()
 	return "No errors"
 
