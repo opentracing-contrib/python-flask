@@ -1,22 +1,23 @@
 import sys
 sys.path.append("../")
 
-from flask import (Flask, _request_ctx_stack as stack)
+from flask import Flask
 from flask_opentracing import FlaskTracer
 import lightstep.tracer
 import opentracing
-import time
 import urllib2
 
 app = Flask(__name__)
-ls_tracer = lightstep.tracer.init_tracer(group_name="example server", access_token="678ed8df5cb556751a4bfdfa51347666")
+
+# one-time tracer initialization code
+ls_tracer = lightstep.tracer.init_tracer(group_name="example server", access_token="{your_lightstep_token}")
 tracer = FlaskTracer(ls_tracer)
 
 @app.route("/")
 def index():
 	return "Index Page"
 
-@app.route("/simple", methods=['GET'])
+@app.route("/simple")
 @tracer.trace("url")
 def simple_response():
 	'''
@@ -24,7 +25,7 @@ def simple_response():
 	'''
 	return "Hello, world!"
 
-@app.route("/childspan", methods=['GET'])
+@app.route("/childspan")
 @tracer.trace("headers")
 def create_child_span():
 	'''
@@ -33,12 +34,8 @@ def create_child_span():
 	This is a more complicated example of accessing the current 
 	request from within a handler and creating new spans manually.
 	'''
-	current_request = stack.top.request
-	parent_span = tracer.get_span(current_request)
-	if parent_span is not None:
-		child_span = ls_tracer.start_span("inside create_child_span", parent_span)
-	else:
-		child_span = ls_tracer.start_span("inside create_child_span")
+	parent_span = tracer.get_span()
+	child_span = ls_tracer.start_span("inside create_child_span", parent_span)
 	ans = calculate_some_stuff()
 	child_span.finish()	
 	return str(ans)

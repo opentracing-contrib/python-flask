@@ -25,9 +25,9 @@ The OpenTracing tracer can be any implementation you choose. The optional
 arguments for the tracer.trace() decorator are any number of attributes (as
 strings) of flask.Request that you wish to set as tags on the created span.
 
-If you wish to access a span for a request, you can call
-`tracer.get_span(request)` for that request. If this is the current request,
-this is `_request_ctx_stack.top.request`.
+If you wish to access the span for the current request, you can call
+`tracer.get_span()`. If you wish to access the span for a different active
+request, you can call `tracer.get_span(request)` for that request.
 
 ## Examples
 
