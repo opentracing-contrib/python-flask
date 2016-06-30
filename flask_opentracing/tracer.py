@@ -49,13 +49,15 @@ class FlaskTracer(opentracing.Tracer):
 			return wrapper
 		return decorator
 
-	def get_span(self, request, new_span_name=None):
+	def get_span(self, request=None):
 		'''
-		Returns the span tracing this request, if it exists.
-		If it doesn't exist then returns None.
+		Returns the span tracing the current request, or the given
+		If the request doesn't exist then returns None.
 
-		@param request the request to find the trace of 
+		@param request the request to get the span from
 		'''
+		if request is None:
+			request = stack.top.request
 		return self._current_spans.get(request, None)
 
 	def injectAsHeaders(self, span, request):

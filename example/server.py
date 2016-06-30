@@ -9,7 +9,7 @@ import time
 import urllib2
 
 app = Flask(__name__)
-ls_tracer = lightstep.tracer.init_tracer(group_name="example server", access_token="{your_lightstep_token}")
+ls_tracer = lightstep.tracer.init_tracer(group_name="example server", access_token="678ed8df5cb556751a4bfdfa51347666")
 tracer = FlaskTracer(ls_tracer)
 
 @app.route("/")
