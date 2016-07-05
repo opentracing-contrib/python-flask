@@ -60,7 +60,7 @@ class FlaskTracer(opentracing.Tracer):
 			request = stack.top.request
 		return self._current_spans.get(request, None)
 
-	def injectAsHeaders(self, span, request):
+	def inject_as_headers(self, span, request):
 		text_carrier = {}
 		self._tracer.inject(span, opentracing.Format.TEXT_MAP, text_carrier)
 		for k, v in text_carrier.iteritems():

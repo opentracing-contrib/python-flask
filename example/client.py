@@ -32,7 +32,7 @@ def send_multiple_requests(script, numrequests):
 	def send_request():
 		url = "http://localhost:5000/"+str(script)
 		request = urllib2.Request(url)
-		tracer.injectAsHeaders(span, request)
+		tracer.inject_as_headers(span, request)
 		try:
 			response = urllib2.urlopen(request)
 		except urllib2.URLError as ue:  

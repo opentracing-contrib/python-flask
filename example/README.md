@@ -37,6 +37,10 @@ app, and the trace will include a span on both the client and server sides. This
 occurs automatically since both the client and server functions are decorated
 with @tracer.trace().
 
+Result for `/request/simple/1`: (note 'url' tags)
+
+![request and response spans](https://raw.githubusercontent.com/kcamenzind/flask_opentracing/master/example/img/simple.png)
+
 ### Log something to a request:
 
 Navigate to `/log`. This will log a message to the server-side span. The client
@@ -47,6 +51,9 @@ logging occurs within the function by accessing the current span as follows:
 span = tracer.get_span()
 span.log_event("hello world")
 ```
+Result for `/log`:
+
+![span with log](https://raw.githubusercontent.com/kcamenzind/flask_opentracing/master/example/img/log.png)
 
 ### Add spans to the trace manually:
 
@@ -62,3 +69,6 @@ child_span = ls_tracer.start_span("inside create_child_span", parent_span)
 ... do some stuff
 child_span.finish()	
 ```
+Result for `/request/childspan/2`:
+
+![two child spans](https://raw.githubusercontent.com/kcamenzind/flask_opentracing/master/example/img/childspan.png)
