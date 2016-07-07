@@ -12,18 +12,18 @@ each terminal:
 First window:
 
 ``` 
-> export FLASK_APP=responder.py   
+> export FLASK_APP=server.py   
 > flask run 
 ```
 
 Second window:
 
 ``` 
-> export FLASK_APP=requester.py   
+> export FLASK_APP=client.py   
 > flask run --port=0 
 ```
 
-To test the traces, check what port the requester is running on and load
+To test the traces, check what port the client is running on and load
 localhost:port. If you have a lightstep tracer token, you
 should be able to view the trace data on the lightstep interface. 
 (NOTE: if you wish to use a different OpenTracing tracer, simply replace
@@ -37,7 +37,7 @@ app, and the trace will include a span on both the client and server sides. This
 occurs automatically since both the client and server functions are decorated
 with @tracer.trace().
 
-Result for `/request/simple/1`: (note 'url' tags)
+Result for `/request/simple/1`:
 
 ![request and response spans](https://raw.githubusercontent.com/kcamenzind/flask_opentracing/master/example/img/simple.png)
 

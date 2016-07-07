@@ -11,14 +11,10 @@ app = Flask(__name__)
 
 # one-time tracer initialization code
 ls_tracer = lightstep.tracer.init_tracer(group_name="example server", access_token="{your_lightstep_token}")
-tracer = FlaskTracer(ls_tracer)
-
-@app.route("/")
-def index():
-	return "Index Page"
+# This tracer traces all requests
+tracer = FlaskTracer(ls_tracer, True, app, ["url_rule"])
 
 @app.route("/simple")
-@tracer.trace("url")
 def simple_response():
 	'''
 	This request will be automatically traced.
@@ -26,7 +22,6 @@ def simple_response():
 	return "Hello, world!"
 
 @app.route("/childspan")
-@tracer.trace("headers")
 def create_child_span():
 	'''
 	This request will also be automatically traced.

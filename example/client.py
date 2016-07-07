@@ -11,6 +11,7 @@ app = Flask(__name__)
 
 # one-time tracer initialization code
 ls_tracer = lightstep.tracer.init_tracer(group_name="example client", access_token="{your_lightstep_token}")
+# this tracer does not trace all requests, so the @tracer.trace() decorator must be used
 tracer = FlaskTracer(ls_tracer)
 
 @app.route("/")
