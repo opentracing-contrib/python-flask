@@ -1,5 +1,4 @@
 import opentracing
-import time
 from flask import (Request, _request_ctx_stack as stack)
 
 class FlaskTracer(opentracing.Tracer):
