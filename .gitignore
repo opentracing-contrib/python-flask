@@ -2,3 +2,4 @@
 .eggs
 cache
 *.egg-info
+*/build/*

@@ -1,8 +1,18 @@
-# Flask-OpenTracing extension:
+# Flask-OpenTracing
 
-This extension allows for tracing of flask apps using the OpenTracing API. All
+## Installation
+
+Run the following command:
+
+```
+$ pip install Flask-Opentracing
+```
+
+This Flask extension allows for tracing of Flask apps using the OpenTracing API. All
 that it requires is for a FlaskTracing tracer to be initialized using an
 instance of an OpenTracing tracer. You can either trace all requests to your site, or use function decorators to trace certain individual requests.
+
+**Note:** `optional_args` in both cases are any number of attributes (as strings) of `flask.Request` that you wish to set as tags on the created span
 
 ### Trace All Requests
 
@@ -34,13 +44,23 @@ def some_view_func():
 	return some_view 
 ```
 
-### Notes
-The OpenTracing tracer can be any implementation you choose. In both cases, the optional
-arguments are any number of attributes (as strings) of `flask.Request` that you wish to set as tags on the created span.
+## Accessing Spans Manually
 
-If you wish to access the span for the current request, you can call
-`tracer.get_span()`. If you wish to access the span for a different active
-request, you can call `tracer.get_span(request)` for that request.
+In order to access the span for a request, we've provided an method `FlaskTracer.get_span(request)` that returns the span for the request, if it is exists and is not finished. This can be used to log important events to the span, set tags, or create child spans to trace non-RPC events. If no request is passed in, the current request will be used.
+
+## Tracing an RPC
+
+If you want to make an RPC and continue an existing trace, you can inject the current span into the RPC. For example, if making an http request, the following code will continue your trace across the wire:
+
+```python
+@tracer.trace()
+def some_view_func(request):
+    new_request = some_http_request
+    current_span = tracer.get_span(request)
+    tracer.inject_as_headers(current_span, new_request)
+    ... # make request
+```
+**Note:** `FlaskTracer.inject_as_headers(span, request)` is a convenience method that injects the span into an http request's headers.
 
 ## Examples
 
