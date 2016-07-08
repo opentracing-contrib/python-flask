@@ -33,7 +33,7 @@ def send_multiple_requests(script, numrequests):
 	def send_request():
 		url = "http://localhost:5000/"+str(script)
 		request = urllib2.Request(url)
-		tracer.inject_as_headers(span, request)
+		inject_as_headers(ls_tracer, span, request)
 		try:
 			response = urllib2.urlopen(request)
 		except urllib2.URLError as ue:  
@@ -60,4 +60,10 @@ def test_lightstep_tracer():
 	Simple traced function to ensure the tracer works.
 	'''
 	return "No errors"
+
+def inject_as_headers(tracer, span, request):
+    text_carrier = {}
+    tracer.inject(span, opentracing.Format.TEXT_MAP, text_carrier)
+    for k, v in text_carrier.iteritems():
+        request.add_header(k,v)
 

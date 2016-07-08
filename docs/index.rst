@@ -70,10 +70,11 @@ If you want to make an RPC and continue an existing trace, you can inject the cu
     def some_view_func(request):
         new_request = some_http_request
         current_span = tracer.get_span(request)
-        tracer.inject_as_headers(current_span, new_request)
+        text_carrier = {}
+        opentracing_tracer.inject(span, opentracing.Format.TEXT_MAP, text_carrier)
+        for k, v in text_carrier.iteritems():
+            new_request.add_header(k,v)
         ... # make request
-
-**Note:** `FlaskTracer.inject_as_headers(span, request)` is a convenience method that injects the span into an http request's headers.
 
 Examples
 --------

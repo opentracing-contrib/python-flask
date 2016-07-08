@@ -57,12 +57,6 @@ class FlaskTracer(opentracing.Tracer):
             request = stack.top.request
         return self._current_spans.get(request, None)
 
-    def inject_as_headers(self, span, request):
-        text_carrier = {}
-        self._tracer.inject(span, opentracing.Format.TEXT_MAP, text_carrier)
-        for k, v in text_carrier.iteritems():
-            request.add_header(k,v)
-
     def _before_request_fn(self, attributes):
         request = stack.top.request
         operation_name = request.endpoint
@@ -78,7 +72,7 @@ class FlaskTracer(opentracing.Tracer):
         for attr in attributes:
             if hasattr(request, attr):
                 payload = str(getattr(request, attr))
-                if payload is not "":
+                if payload:
                     span.set_tag(attr, payload)
 
     def _after_request_fn(self):

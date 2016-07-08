@@ -1,15 +1,21 @@
 from setuptools import setup
 
+'''
+Flask-OpenTracing
+-----------------
+
+This extension provides simple integration of OpenTracing in Flask applications.
+'''
 
 setup(
     name='Flask-OpenTracing',
-    version='0.1',
+    version='0.1.0',
     # url='http://example.com/flask-sqlite3/',
     license='MIT',
-    # author='Your Name',
-    # author_email='your-email@example.com',
+    author='Kathy Camenzind',
+    author_email='kcamenzind@lightstep.com',
     description='OpenTracing support for Flask applications',
-    # long_description=__doc__,
+    long_description=__doc__,
     packages=['flask_opentracing'],
     zip_safe=False,
     include_package_data=True,
