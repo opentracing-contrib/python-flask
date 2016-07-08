@@ -39,30 +39,21 @@ def test_span_creation():
 
 def test_span_deletion():
     assert not tracer_with_attributes._current_spans
-    assert not tracer_without_attributes._current_spans
     test_app.get('/test')
     assert not tracer_with_attributes._current_spans
-    assert not tracer_without_attributes._current_spans
 
 def test_requests_distinct():
     with app.test_request_context('/test'):
         app.preprocess_request()
     with app.test_request_context('/test'):
         app.preprocess_request()
-        span = tracer_with_attributes._current_spans.pop(request)
-        span2 = tracer_without_attributes._current_spans.pop(request)
-        assert span
-        assert span2
-        span.finish()
-        span2.finish()
+        second_span = tracer_with_attributes._current_spans.pop(request)
+        assert second_span
+        second_span.finish()
         assert not tracer_with_attributes.get_span(request)
-        assert not tracer_without_attributes.get_span(request)
     # clear current spans
     for req in tracer_with_attributes._current_spans:
         tracer_with_attributes._current_spans[req].finish()
-    tracer_with_attributes._current_spans = {}    
-    for req in tracer_without_attributes._current_spans:
-        tracer_without_attributes._current_spans[req].finish()
-    tracer_without_attributes._current_spans = {}
+    tracer_with_attributes._current_spans = {}
 
 # TODO: Tests for inject/extract; wait until new opentracing is on pypi
