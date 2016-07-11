@@ -10,20 +10,22 @@ This extension provides simple integration of OpenTracing in Flask applications.
 setup(
     name='Flask-OpenTracing',
     version='0.1.0',
-    # url='http://example.com/flask-sqlite3/',
+    url='http://example.com/flask-sqlite3/',
+    download_url='https://github.com/kcamenzind/flask_opentracing/tarball/0.1.0',
     license='MIT',
     author='Kathy Camenzind',
     author_email='kcamenzind@lightstep.com',
     description='OpenTracing support for Flask applications',
-    long_description=__doc__,
-    packages=['flask_opentracing'],
+    long_description=open(README.rst).read(),
+    packages=['flask_opentracing', 'tests'],
     zip_safe=False,
     include_package_data=True,
     platforms='any',
     install_requires=[
         'Flask',
-        'opentracing'
+        'opentracing >= 2.0.0.dev0'
     ],
+    extras_require=['lightstep']
     tests_require=['pytest'],
     setup_requires=['pytest-runner'],
     classifiers=[

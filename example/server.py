@@ -1,6 +1,3 @@
-import sys
-sys.path.append("../")
-
 from flask import Flask
 from flask_opentracing import FlaskTracer
 import lightstep.tracer
@@ -30,7 +27,7 @@ def create_child_span():
 	request from within a handler and creating new spans manually.
 	'''
 	parent_span = tracer.get_span()
-	child_span = ls_tracer.start_span("inside create_child_span", parent_span)
+	child_span = ls_tracer.start_span("inside create_child_span", opentracing.ChildOf(parent_span.context))
 	ans = calculate_some_stuff()
 	child_span.finish()	
 	return str(ans)

@@ -1,8 +1,5 @@
 from flask import (Flask, request)
 import opentracing
-
-import sys
-sys.path.append('../')
 from flask_opentracing import FlaskTracer
 
 app = Flask(__name__)
@@ -31,8 +28,8 @@ def send_request():
     span = tracer.get_span()
     headers = {}
     empty_tracer.inject(span, opentracing.Format.TEXT_MAP, headers)   
-    test_app.get('/test', headers=headers)
-    return "Request sent"
+    rv = test_app.get('/test', headers=headers)
+    return str(rv.status_code)
 
 def test_on():
     assert True
@@ -75,5 +72,5 @@ def test_decorator():
 
 def test_over_wire():
     rv = test_app.get('/wire')
-    assert "Request sent" in rv.data
+    assert '200' in rv.data
 

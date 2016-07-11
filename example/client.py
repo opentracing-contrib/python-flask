@@ -1,6 +1,3 @@
-import sys
-sys.path.append("../")
-
 from flask import Flask
 from flask_opentracing import FlaskTracer
 import lightstep.tracer
@@ -63,7 +60,7 @@ def test_lightstep_tracer():
 
 def inject_as_headers(tracer, span, request):
     text_carrier = {}
-    tracer.inject(span, opentracing.Format.TEXT_MAP, text_carrier)
+    tracer.inject(span.context, opentracing.Format.TEXT_MAP, text_carrier)
     for k, v in text_carrier.iteritems():
         request.add_header(k,v)
 
