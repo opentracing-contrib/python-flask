@@ -3,3 +3,5 @@
 cache
 *.egg-info
 */build/*
+example/lightstep/*
+dist/*

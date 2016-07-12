@@ -16,7 +16,7 @@ setup(
     author='Kathy Camenzind',
     author_email='kcamenzind@lightstep.com',
     description='OpenTracing support for Flask applications',
-    long_description=open(README.rst).read(),
+    long_description=open('README.rst').read(),
     packages=['flask_opentracing', 'tests'],
     zip_safe=False,
     include_package_data=True,
@@ -25,7 +25,6 @@ setup(
         'Flask',
         'opentracing >= 2.0.0.dev0'
     ],
-    extras_require=['lightstep']
     tests_require=['pytest'],
     setup_requires=['pytest-runner'],
     classifiers=[
