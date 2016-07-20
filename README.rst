@@ -7,7 +7,7 @@ Installation
 
 Run the following command:
 
-.. code-block:: python
+.. code-block:: 
 
     $ pip install Flask-Opentracing
 
