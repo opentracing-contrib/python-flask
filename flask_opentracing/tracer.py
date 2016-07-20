@@ -11,7 +11,6 @@ class FlaskTracer(opentracing.Tracer):
         self._tracer = tracer
         self._trace_all_requests = trace_all_requests
         self._current_spans = {}
-        self._trace_all_requests = trace_all_requests
 
         # tracing all requests requires that app != None
         if self._trace_all_requests:
