@@ -6,13 +6,13 @@ Flask-OpenTracing
 
 This extension provides simple integration of OpenTracing in Flask applications.
 '''
-
+version = '0.1.1'
 setup(
     name='Flask-OpenTracing',
-    version='0.1.0',
-    url='http://github.com/kcamenzind/flask_opentracing',
-    download_url='https://github.com/kcamenzind/flask_opentracing/tarball/0.1.0',
-    license='MIT',
+    version=version,
+    url='http://github.com/opentracing-contrib/python-flask',
+    download_url='https://github.com/opentracing-contrib/python-flask/tarball/'+version,
+    license='BSD',
     author='Kathy Camenzind',
     author_email='kcamenzind@lightstep.com',
     description='OpenTracing support for Flask applications',
@@ -23,14 +23,14 @@ setup(
     platforms='any',
     install_requires=[
         'Flask',
-        'opentracing >= 2.0.0.dev0'
+        'opentracing >= 2.0.0.dev1'
     ],
     tests_require=['pytest'],
     setup_requires=['pytest-runner'],
     classifiers=[
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
