@@ -36,11 +36,6 @@ upload-docs:
 	python setup.py build_sphinx
 	python setup.py upload_docs
 
-# The publish step does a clean and rebuild as the `gradle build` hasn't seemed
-# 100% reliable in rebuilding when files are changed (?).  This may very much be
-# a setup error -- but for now, a clean build is done just in case.
-#
-# See https://bintray.com/lightstep for published artifacts
 publish: clean test build
 	@git diff-index --quiet HEAD || (echo "git has uncommitted changes. Refusing to publish." && false)
 	awk 'BEGIN { FS = "." }; { printf("%d.%d.%d", $$1, $$2, $$3+1) }' VERSION > VERSION.incr
@@ -54,7 +49,7 @@ publish: clean test build
 	python setup.py sdist upload -r pypitest || (echo "Was unable to upload to pypitest, ablorint publish." && false)
 	python setup.py register -r pypi || (echo "Was unable to register to pypi, aborting publish." && false)
 	python setup.py sdist upload -r pypi || (echo "Was unable to upload to pypi, publish failed." && false)
-	($MAKE) upload-docs
+	$(MAKE) upload-docs
 	@echo
 	@echo "\033[92mSUCCESS: published v`cat VERSION` \033[0m"
 	@echo
