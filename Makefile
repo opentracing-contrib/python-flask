@@ -54,7 +54,7 @@ publish: clean test build
 	python setup.py sdist upload -r pypitest || (echo "Was unable to upload to pypitest, ablorint publish." && false)
 	python setup.py register -r pypi || (echo "Was unable to register to pypi, aborting publish." && false)
 	python setup.py sdist upload -r pypi || (echo "Was unable to upload to pypi, publish failed." && false)
-	upload-docs
+	($MAKE) upload-docs
 	@echo
 	@echo "\033[92mSUCCESS: published v`cat VERSION` \033[0m"
 	@echo
