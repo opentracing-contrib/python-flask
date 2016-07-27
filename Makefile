@@ -41,7 +41,7 @@ upload-docs:
 # a setup error -- but for now, a clean build is done just in case.
 #
 # See https://bintray.com/lightstep for published artifacts
-publish: clean build test
+publish: clean test build
 	@git diff-index --quiet HEAD || (echo "git has uncommitted changes. Refusing to publish." && false)
 	awk 'BEGIN { FS = "." }; { printf("%d.%d.%d", $$1, $$2, $$3+1) }' VERSION > VERSION.incr
 	mv VERSION.incr VERSION
