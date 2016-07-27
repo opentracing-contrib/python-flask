@@ -64,8 +64,8 @@ class FlaskTracer(opentracing.Tracer):
             headers[k.lower()] = v
         span = None
         try:
-            span_ctx = self._tracer.extract(opentracing.Format.TEXT_MAP, headers)
-            span = self._tracer.start_span(operation_name=operation_name, references=opentracing.child_of(span_ctx))
+            span_ctx = self._tracer.extract(opentracing.Format.HTTP_HEADERS, headers)
+            span = self._tracer.start_span(operation_name=operation_name, child_of=span_ctx)
         except (opentracing.InvalidCarrierException, opentracing.SpanContextCorruptedException) as e:
             span = self._tracer.start_span(operation_name=operation_name, tags={"Extract failed": str(e)})
         if span is None:
@@ -80,5 +80,6 @@ class FlaskTracer(opentracing.Tracer):
     def _after_request_fn(self):
         request = stack.top.request
         span = self._current_spans.pop(request)
-        span.finish()
+        if span is not None:
+            span.finish()
 
