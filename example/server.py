@@ -27,7 +27,7 @@ def create_child_span():
 	request from within a handler and creating new spans manually.
 	'''
 	parent_span = tracer.get_span()
-	child_span = ls_tracer.start_span("inside create_child_span", opentracing.child_of(parent_span.context))
+	child_span = ls_tracer.start_span("inside create_child_span", child_of=parent_span)
 	ans = calculate_some_stuff()
 	child_span.finish()	
 	return str(ans)
