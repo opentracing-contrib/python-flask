@@ -33,6 +33,7 @@ build:
 	python setup.py build
 
 upload-docs:
+	git submodule update --init  # for sphinx flask theme
 	python setup.py build_sphinx
 	python setup.py upload_docs
 
