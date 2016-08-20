@@ -27,6 +27,7 @@ class FlaskTracer(opentracing.Tracer):
     def trace(self, *attributes):
         '''
         Function decorator that traces functions
+
         NOTE: Must be placed after the @app.route decorator
 
         @param attributes any number of flask.Request attributes
@@ -47,8 +48,10 @@ class FlaskTracer(opentracing.Tracer):
 
     def get_span(self, request=None):
         '''
-        Returns the span tracing the current request, or the given
-        If the request doesn't exist then returns None.
+        Returns the span tracing `request`, or the current request if
+        `request==None`.
+
+        If there is no such span, get_span returns None.
 
         @param request the request to get the span from
         '''

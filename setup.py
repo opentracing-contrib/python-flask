@@ -23,7 +23,7 @@ setup(
     platforms='any',
     install_requires=[
         'Flask',
-        'opentracing >= 2.0.0.dev3'
+        'opentracing>=1.1,<1.2'
     ],
     tests_require=['pytest'],
     setup_requires=['pytest-runner'],
