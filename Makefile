@@ -45,8 +45,6 @@ publish: clean test build
 	git tag `cat VERSION`
 	git push
 	git push --tags
-	python setup.py register -r pypitest || (echo "Was unable to register to pypitest, aborting publish." && false)
-	python setup.py sdist upload -r pypitest || (echo "Was unable to upload to pypitest, ablorint publish." && false)
 	python setup.py register -r pypi || (echo "Was unable to register to pypi, aborting publish." && false)
 	python setup.py sdist upload -r pypi || (echo "Was unable to upload to pypi, publish failed." && false)
 	$(MAKE) upload-docs
