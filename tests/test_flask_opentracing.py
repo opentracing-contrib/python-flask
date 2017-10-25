@@ -8,6 +8,7 @@ test_app = app.test_client()
 empty_tracer = opentracing.Tracer()
 tracer_all = FlaskTracer(empty_tracer, True, app, ['url'])
 tracer = FlaskTracer(empty_tracer)
+tracer_deferred = FlaskTracer(lambda: opentracing.Tracer(), True, app, ['url'])
 
 def flush_spans(tcr):
     for req in tcr._current_spans:
@@ -27,7 +28,7 @@ def decorated_fn():
 def send_request():
     span = tracer.get_span()
     headers = {}
-    empty_tracer.inject(span, opentracing.Format.TEXT_MAP, headers)   
+    empty_tracer.inject(span, opentracing.Format.TEXT_MAP, headers)
     rv = test_app.get('/test', headers=headers)
     return str(rv.status_code)
 
@@ -39,12 +40,16 @@ def test_span_creation():
         app.preprocess_request()
         assert tracer_all.get_span(request)
         assert not tracer.get_span(request)
+        assert tracer_deferred.get_span(request)
         flush_spans(tracer_all)
+        flush_spans(tracer_deferred)
 
 def test_span_deletion():
     assert not tracer_all._current_spans
+    assert not tracer_deferred._current_spans
     test_app.get('/test')
     assert not tracer_all._current_spans
+    assert not tracer_deferred._current_spans
 
 def test_requests_distinct():
     with app.test_request_context('/test'):
@@ -57,20 +62,23 @@ def test_requests_distinct():
         assert not tracer_all.get_span(request)
     # clear current spans
     flush_spans(tracer_all)
+    flush_spans(tracer_deferred)
 
 def test_decorator():
     with app.test_request_context('/another_test'):
         app.preprocess_request()
         assert not tracer.get_span(request)
+        assert len(tracer_deferred._current_spans) == 1
         assert len(tracer_all._current_spans) == 1
     flush_spans(tracer)
     flush_spans(tracer_all)
+    flush_spans(tracer_deferred)
 
     test_app.get('/another_test')
     assert not tracer_all._current_spans
     assert not tracer._current_spans
+    assert not tracer_deferred._current_spans
 
 def test_over_wire():
     rv = test_app.get('/wire')
     assert '200' in rv.data
-
