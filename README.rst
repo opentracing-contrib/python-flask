@@ -29,6 +29,33 @@ instance of an OpenTracing tracer. You can either trace all requests to your sit
 
 **Note:** `optional_args` in both cases are any number of attributes (as strings) of `flask.Request` that you wish to set as tags on the created span
 
+Initialize
+----------
+
+`FlaskTracer` wraps the tracer instance that's supported by opentracing. To create a `FlaskTracer` object, you can either pass in a tracer object directly or a callable that returns the tracer object. For example:
+
+.. code-block:: python
+
+    import opentracing
+    from flask_opentracing import FlaskTracer
+
+    opentracing_tracer = ## some OpenTracing tracer implementation
+    tracer = FlaskTracer(opentracing_tracer, ...)
+
+or
+
+.. code-block:: python
+
+    import opentracing
+    from flask_opentracing import FlaskTracer
+
+    def initialize_tracer():
+        ...
+        return opentracing_tracer
+
+    tracer = FlaskTracer(initialize_tracer, ...)
+
+
 Trace All Requests
 ------------------
 
