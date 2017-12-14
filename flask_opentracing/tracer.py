@@ -92,6 +92,7 @@ class FlaskTracer(opentracing.Tracer):
 
     def _after_request_fn(self):
         request = stack.top.request
-        span = self._current_spans.pop(request)
+        # the pop call can fail if the request is interrupted by a `before_request` method so we need a default
+        span = self._current_spans.pop(request, None)
         if span is not None:
             span.finish()
