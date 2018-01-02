@@ -72,5 +72,5 @@ def test_decorator():
 
 def test_over_wire():
     rv = test_app.get('/wire')
-    assert '200' in rv.data
+    assert '200' in str(rv.status_code)
 
