@@ -1,5 +1,6 @@
 import opentracing
-from flask import (Request, _request_ctx_stack as stack)
+from flask import _request_ctx_stack as stack
+
 
 class FlaskTracer(opentracing.Tracer):
     '''
@@ -7,8 +8,12 @@ class FlaskTracer(opentracing.Tracer):
 
     @param tracer the OpenTracing tracer implementation to trace requests with
     '''
-    def __init__(self, tracer, trace_all_requests=False, app=None, traced_attributes=[]): 
-        self._tracer = tracer
+    def __init__(self, tracer, trace_all_requests=False, app=None, traced_attributes=[]):
+        if not callable(tracer):
+            self.__tracer = tracer
+        else:
+            self.__tracer = None
+            self.__tracer_getter = tracer
         self._trace_all_requests = trace_all_requests
         self._current_spans = {}
 
@@ -23,6 +28,11 @@ class FlaskTracer(opentracing.Tracer):
                 self._after_request_fn()
                 return response
 
+    @property
+    def _tracer(self):
+        if not self.__tracer:
+            self.__tracer = self.__tracer_getter()
+        return self.__tracer
 
     def trace(self, *attributes):
         '''
@@ -85,4 +95,3 @@ class FlaskTracer(opentracing.Tracer):
         span = self._current_spans.pop(request)
         if span is not None:
             span.finish()
-
