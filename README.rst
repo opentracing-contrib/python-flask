@@ -118,6 +118,8 @@ with integrated OpenTracing tracers.
 
 .. _examples: https://github.com/opentracing-contrib/python-flask/tree/master/example
 
+`This tutorial <http://blog.scoutapp.com/articles/2018/01/15/tutorial-tracing-python-flask-requests-with-opentracing>`_ has a step-by-step guide for using `Flask-Opentracing` with `Jaeger <https://github.com/jaegertracing/jaeger>`_.
+
 Further Information
 ===================
 
