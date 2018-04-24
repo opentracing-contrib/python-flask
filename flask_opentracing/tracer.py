@@ -65,7 +65,7 @@ class FlaskTracer(opentracing.Tracer):
 
         @param request the request to get the span from
         '''
-        if request is None:
+        if request is None and stack.top:
             request = stack.top.request
         return self._current_spans.get(request, None)
 
