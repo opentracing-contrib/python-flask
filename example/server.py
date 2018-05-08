@@ -1,41 +1,40 @@
-from flask import Flask
-from flask_opentracing import FlaskTracer
-import lightstep.tracer
 import opentracing
-import urllib2
+import logging
+from jaeger_client import Config
+from flask_opentracing import FlaskTracer
+from opentracing.propagation import Format
+from flask import Flask, request
+from opentracing.ext import tags
+from os import environ
 
-app = Flask(__name__)
+JAEGER_HOST = environ.get('JAEGER_HOST')
 
-# one-time tracer initialization code
-ls_tracer = lightstep.tracer.init_tracer(group_name="example server", access_token="{your_lightstep_token}")
-# This tracer traces all requests
-tracer = FlaskTracer(ls_tracer, True, app, ["url_rule"])
+if __name__ == '__main__':
+        app = Flask(__name__)
+        log_level = logging.DEBUG
+        logging.getLogger('').handlers = []
+        logging.basicConfig(format='%(asctime)s %(message)s', level=log_level)
+        config = Config(config={'sampler': {'type': 'const', 'param': 1},
+                                'logging': True,
+                                'local_agent':
+                                {'reporting_host': JAEGER_HOST}},
+                        service_name="jaeger_opentracing_example")
+        ls_tracer = config.initialize_tracer()
+        tracer = FlaskTracer(ls_tracer)
 
-@app.route("/simple")
-def simple_response():
-	'''
-	This request will be automatically traced.
-	'''
-	return "Hello, world!"
+        @app.route('/log')
+        @tracer.trace()
+        def log():
 
-@app.route("/childspan")
-def create_child_span():
-	'''
-	This request will also be automatically traced.
-	
-	This is a more complicated example of accessing the current 
-	request from within a handler and creating new spans manually.
-	'''
-	parent_span = tracer.get_span()
-	child_span = ls_tracer.start_span("inside create_child_span", child_of=parent_span)
-	ans = calculate_some_stuff()
-	child_span.finish()	
-	return str(ans)
+                span_ctx = ls_tracer.extract(Format.HTTP_HEADERS, request.headers)
+                print(request.headers)
+                span_tags = {tags.SPAN_KIND: tags.SPAN_KIND_RPC_SERVER}
+                print(span_tags)
+                child_span = ls_tracer.start_span("python webserver internal span of log method",
+                                                  child_of=span_ctx,
+                                                  tags=span_tags)
+                #do some things here
+                child_span.finish()
+                return "log"
 
-def calculate_some_stuff():
-	two = 1 + 1
-	return two
-
-
-
-
+        app.run(debug=True, host='0.0.0.0', port=5000)

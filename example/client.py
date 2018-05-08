@@ -1,66 +1,35 @@
-from flask import Flask
-from flask_opentracing import FlaskTracer
-import lightstep.tracer
-import opentracing
-import urllib2
+import requests
+import time
+from opentracing_instrumentation.client_hooks import install_all_patches
+from opentracing_instrumentation.request_context import get_current_span, span_in_context
+from jaeger_client import Config
+from opentracing.ext import tags
+from opentracing.propagation import Format
 
-app = Flask(__name__)
+from os import environ
 
-# one-time tracer initialization code
-ls_tracer = lightstep.tracer.init_tracer(group_name="example client", access_token="{your_lightstep_token}")
-# this tracer does not trace all requests, so the @tracer.trace() decorator must be used
-tracer = FlaskTracer(ls_tracer)
+JAEGER_HOST = environ.get('JAEGER_HOST')
 
-@app.route("/")
-def index():
-	'''
-	Index page, has no tracing.
-	'''
-	return "Index Page"
+WEBSERVER_HOST = environ.get('WEBSERVER_HOST')
 
+config = Config(config={'sampler': {'type': 'const', 'param': 1},
+                        'logging': True,
+                        'local_agent': {'reporting_host': JAEGER_HOST}},
+                service_name="jaeger_opentracing_example")
+tracer = config.initialize_tracer()
 
-@app.route("/request/<script>/<int:numrequests>")
-@tracer.trace("url")
-def send_multiple_requests(script, numrequests):
-	'''
-	Traced function that makes a request to the server
-	Injects the current span into headers to continue trace
-	'''
-	span = tracer.get_span()
-	def send_request():
-		url = "http://localhost:5000/"+str(script)
-		request = urllib2.Request(url)
-		inject_as_headers(ls_tracer, span, request)
-		try:
-			response = urllib2.urlopen(request)
-		except urllib2.URLError as ue:  
-			response = ue
-	for i in range(numrequests):
-		send_request()
-	return "Requests sent"
+install_all_patches()
 
-@app.route('/log')
-@tracer.trace()
-def log_something():
-	'''
-	Traced function that logs something to the current 
-	request span.
-	'''
-	span = tracer.get_span()
-	span.log_event("hello world")
-	return "Something was logged"
+url = "http://{}:5000/log".format(WEBSERVER_HOST)
+with tracer.start_span('say-hello') as span:
+    span.set_tag(tags.HTTP_METHOD, 'GET')
+    span.set_tag(tags.HTTP_URL, url)
+    span.set_tag(tags.SPAN_KIND, tags.SPAN_KIND_RPC_CLIENT)
+    headers = {}
+    tracer.inject(span, Format.HTTP_HEADERS, headers)
 
-@app.route("/test")
-@tracer.trace()
-def test_lightstep_tracer():
-	'''
-	Simple traced function to ensure the tracer works.
-	'''
-	return "No errors"
+    r = requests.get(url, headers=headers)
+    print(r.text)
 
-def inject_as_headers(tracer, span, request):
-    text_carrier = {}
-    tracer.inject(span.context, opentracing.Format.TEXT_MAP, text_carrier)
-    for k, v in text_carrier.iteritems():
-        request.add_header(k,v)
-
+    time.sleep(2)
+    tracer.close()
