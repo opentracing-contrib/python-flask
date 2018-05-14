@@ -1,35 +1,27 @@
 import requests
 import time
 from opentracing_instrumentation.client_hooks import install_all_patches
-from opentracing_instrumentation.request_context import get_current_span, span_in_context
 from jaeger_client import Config
-from opentracing.ext import tags
-from opentracing.propagation import Format
 
-from os import environ
+from os import getenv
 
-JAEGER_HOST = environ.get('JAEGER_HOST')
+JAEGER_HOST = getenv('JAEGER_HOST', 'localhost')
+WEBSERVER_HOST = getenv('WEBSERVER_HOST', 'localhost')
 
-WEBSERVER_HOST = environ.get('WEBSERVER_HOST')
-
+# Create configuration object with enabled logging and sampling of all requests.
 config = Config(config={'sampler': {'type': 'const', 'param': 1},
                         'logging': True,
                         'local_agent': {'reporting_host': JAEGER_HOST}},
                 service_name="jaeger_opentracing_example")
 tracer = config.initialize_tracer()
 
+# Automatically trace all requests made with 'requests' library.
 install_all_patches()
 
 url = "http://{}:5000/log".format(WEBSERVER_HOST)
-with tracer.start_span('say-hello') as span:
-    span.set_tag(tags.HTTP_METHOD, 'GET')
-    span.set_tag(tags.HTTP_URL, url)
-    span.set_tag(tags.SPAN_KIND, tags.SPAN_KIND_RPC_CLIENT)
-    headers = {}
-    tracer.inject(span, Format.HTTP_HEADERS, headers)
+# Make the actual request to webserver.
+requests.get(url)
 
-    r = requests.get(url, headers=headers)
-    print(r.text)
-
-    time.sleep(2)
-    tracer.close()
+# allow tracer to flush the spans - https://github.com/jaegertracing/jaeger-client-python/issues/50
+time.sleep(2)
+tracer.close()
