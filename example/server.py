@@ -22,22 +22,20 @@ if __name__ == '__main__':
         tracer = FlaskTracer(jaeger_tracer)
 
         @app.route('/log')
-        # Indicate that /log endpoint should be traced
-        @tracer.trace()
+        @tracer.trace() # Indicate that /log endpoint should be traced
         def log():
+                parent_span = tracer.get_span(request)
                 # Extract the span information for request object.
-                request_span = tracer.get_span(request)
-                # Start internal span to trace some kind of business logic for /log.
-                current_span = jaeger_tracer.start_span("python webserver internal span of log method",
-                                                        child_of=request_span)
-                # Perform some computations to be traced.
+                with jaeger_tracer.start_span("python webserver internal span of log method",
+                                              child_of=parent_span) as span:
+                    # Perform some computations to be traced.
 
-                a = 1
-                b = 2
-                c = a + b
+                    a = 1
+                    b = 2
+                    c = a + b
 
-                # Finish the current span.
-                current_span.finish()
-                return "log"
+                    span.log_kv({'event': 'my computer knows math!', 'result': c})
+
+                    return "log"
 
         app.run(debug=True, host='0.0.0.0', port=5000)

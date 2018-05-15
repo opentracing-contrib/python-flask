@@ -44,7 +44,7 @@ Give it few seconds to start and run this in second window:
 > python3 client.py   
 ```
 
-To see the traced requests, go to Jaeger web interface.
+To see the traced requests, go to Jaeger web interface and refresh the page.
 Select your service name from dropdown on the left (it's
 "jaeger_opentracing_example" in our case) and press Find traces button at the bottom of the page.
 
@@ -59,15 +59,19 @@ Select your service name from dropdown on the left (it's
 
 Browse to http://localhost:5000/log and compare the trace in Jaeger.
 The last one has 2 spans instead of 3. The span of webserver's GET method is missing.
-That is because in client.py we pass already existing span over the wire, whereas the request from your browser has to tracing data in it.
+That is because client.py starts a trace and passes trace context over the wire, whereas the request from your browser has no tracing context in it.
 
 ### Add spans to the trace manually:
 
 In log function of the server app, we are creating current_span. This is done to
-trace the work that is being done to render the response to /log. Suppose there's
+trace the work that is being done to render the response to /log endpoint. Suppose there's
 a database connection happening. By creating a separate span for it, you'll be able
 to trace the DB request separately from rendering or the response. This gives a
 lot of flexibility to the user.
+
+Speaking about databases, using install_all_patches() method from
+opentracing_instrumentation package gives you a way to trace
+your MySQLdb, SQLAlchemy, Redis queries without writing boilerplate code.
 
 Following code shows how to create a span based on already existing one.
 
