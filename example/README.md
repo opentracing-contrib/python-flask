@@ -1,74 +1,85 @@
 ## Example
 
-This example has a flask client and server and shows they can trace requests
-both within and between the two sites using the flask_opentracing extension and
+This example has a flask client and server and shows how to trace the requests
+to a webserver from a client using the flask_opentracing extension and
 a concrete variant of an OpenTracing tracer. To run, make sure that you run pip
-install for flask, opentracing, and lightstep (although you will not be able to
-view the lightstep traces unless you have an access token).
+install for flask, opentracing, jaeger_client.
 
-Open two terminals and navigate to this directory. Run the following commands in
+### Set up Jaeger:
+
+First, we'll have to download and run our Jaeger instance. It collects and displays
+traces in neat graphical format.
+
+If you already have Docker installed, run this:
+
+```
+docker run -d -e \
+  COLLECTOR_ZIPKIN_HTTP_PORT=9411 \
+  -p 5775:5775/udp \
+  -p 6831:6831/udp \
+  -p 6832:6832/udp \
+  -p 5778:5778 \
+  -p 16686:16686 \
+  -p 14268:14268 \
+  -p 9411:9411 \
+  jaegertracing/all-in-one:latest
+```
+
+You should be able to see a web interface by browsing to http://localhost:16686/search
+
+![traced request](https://raw.githubusercontent.com/opentracing-contrib/python-flask/example/example/img/jaeger_0.png)
+
+Now, open two terminals and navigate to this directory. Run the following commands in
 each terminal:
 
 First window:
 
-``` 
-> export FLASK_APP=server.py   
-> flask run 
+```
+> python3 server.py   
 ```
 
-Second window:
+Give it few seconds to start and run this in second window:
 
-``` 
-> export FLASK_APP=client.py   
-> flask run --port=0 
+```
+> python3 client.py   
 ```
 
-To test the traces, check what port the client is running on and load
-localhost:port. If you have a lightstep tracer token, you
-should be able to view the trace data on the lightstep interface. 
-(NOTE: if you wish to use a different OpenTracing tracer, simply replace
-`ls_tracer` with the OpenTracing tracer instance of your choice.)
+To see the traced requests, go to Jaeger web interface and refresh the page.
+Select your service name from dropdown on the left (it's
+"jaeger_opentracing_example" in our case) and press Find traces button at the bottom of the page.
 
-### Trace a request:
 
-Navigate to `/request/simple/<int:numrequests>` where numrequests is the number
-of requests you want to send to the page. This will send a request to the server
-app, and the trace will include a span on both the client and server sides. This
-occurs automatically since both the client and server functions are decorated
-with @tracer.trace().
+![traced request](https://raw.githubusercontent.com/opentracing-contrib/python-flask/example/example/img/jaeger.png)
 
-Result for `/request/simple/1`:
 
-![request and response spans](https://raw.githubusercontent.com/kcamenzind/flask_opentracing/master/example/img/simple.png)
+(NOTE: if you wish to use a different OpenTracing tracer instead of Jaeger, simply replace
+`jaeger_tracer` with the OpenTracing tracer instance of your choice.)
 
-### Log something to a request:
+### Trace a request from browser:
 
-Navigate to `/log`. This will log a message to the server-side span. The client
-span is created automatically through the @tracer.trace() decorator, while the
-logging occurs within the function by accessing the current span as follows:
-
-```python
-span = tracer.get_span()
-span.log_event("hello world")
-```
-Result for `/log`:
-
-![span with log](https://raw.githubusercontent.com/kcamenzind/flask_opentracing/master/example/img/log.png)
+Browse to http://localhost:5000/log and compare the trace in Jaeger.
+The last one has 2 spans instead of 3. The span of webserver's GET method is missing.
+That is because client.py starts a trace and passes trace context over the wire, whereas the request from your browser has no tracing context in it.
 
 ### Add spans to the trace manually:
 
-Navigate to `/request/childspan/<int:numrequests>`. This will send a request to
-the server app, and the trace will include a span on both the client and server
-sides. The server app will additionally create a child span for the server-side
-span. This example demonstrates how you can trace non-RPC function calls in your
-app, through accessing the current span as follows:
+In log function of the server app, we are creating current_span. This is done to
+trace the work that is being done to render the response to /log endpoint. Suppose there's
+a database connection happening. By creating a separate span for it, you'll be able
+to trace the DB request separately from rendering or the response. This gives a
+lot of flexibility to the user.
+
+Speaking about databases, using install_all_patches() method from
+opentracing_instrumentation package gives you a way to trace
+your MySQLdb, SQLAlchemy, Redis queries without writing boilerplate code.
+
+Following code shows how to create a span based on already existing one.
 
 ```python
 parent_span = tracer.get_span()
-child_span = ls_tracer.start_span("inside create_child_span", parent_span)
+child_span = jaeger_tracer.start_span("inside create_child_span", parent_span)
 ... do some stuff
-child_span.finish()	
+child_span.finish()
 ```
-Result for `/request/childspan/2`:
 
-![two child spans](https://raw.githubusercontent.com/kcamenzind/flask_opentracing/master/example/img/childspan.png)
+![traced request](https://raw.githubusercontent.com/opentracing-contrib/python-flask/example/example/img/jaeger_1.png)

@@ -1,41 +1,41 @@
-from flask import Flask
+import logging
+from jaeger_client import Config
 from flask_opentracing import FlaskTracer
-import lightstep.tracer
-import opentracing
-import urllib2
+from flask import Flask, request
+from os import getenv
+JAEGER_HOST = getenv('JAEGER_HOST', 'localhost')
 
-app = Flask(__name__)
+if __name__ == '__main__':
+        app = Flask(__name__)
+        log_level = logging.DEBUG
+        logging.getLogger('').handlers = []
+        logging.basicConfig(format='%(asctime)s %(message)s', level=log_level)
+        # Create configuration object with enabled logging and sampling of all requests.
+        config = Config(config={'sampler': {'type': 'const', 'param': 1},
+                                'logging': True,
+                                'local_agent':
+                                # Also, provide a hostname of Jaeger instance to send traces to.
+                                {'reporting_host': JAEGER_HOST}},
+                        # Service name can be arbitrary string describing this particular web service.
+                        service_name="jaeger_opentracing_example")
+        jaeger_tracer = config.initialize_tracer()
+        tracer = FlaskTracer(jaeger_tracer)
 
-# one-time tracer initialization code
-ls_tracer = lightstep.tracer.init_tracer(group_name="example server", access_token="{your_lightstep_token}")
-# This tracer traces all requests
-tracer = FlaskTracer(ls_tracer, True, app, ["url_rule"])
+        @app.route('/log')
+        @tracer.trace() # Indicate that /log endpoint should be traced
+        def log():
+                parent_span = tracer.get_span(request)
+                # Extract the span information for request object.
+                with jaeger_tracer.start_span("python webserver internal span of log method",
+                                              child_of=parent_span) as span:
+                    # Perform some computations to be traced.
 
-@app.route("/simple")
-def simple_response():
-	'''
-	This request will be automatically traced.
-	'''
-	return "Hello, world!"
+                    a = 1
+                    b = 2
+                    c = a + b
 
-@app.route("/childspan")
-def create_child_span():
-	'''
-	This request will also be automatically traced.
-	
-	This is a more complicated example of accessing the current 
-	request from within a handler and creating new spans manually.
-	'''
-	parent_span = tracer.get_span()
-	child_span = ls_tracer.start_span("inside create_child_span", child_of=parent_span)
-	ans = calculate_some_stuff()
-	child_span.finish()	
-	return str(ans)
+                    span.log_kv({'event': 'my computer knows math!', 'result': c})
 
-def calculate_some_stuff():
-	two = 1 + 1
-	return two
+                    return "log"
 
-
-
-
+        app.run(debug=True, host='0.0.0.0', port=5000)

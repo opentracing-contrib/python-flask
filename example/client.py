@@ -1,66 +1,27 @@
-from flask import Flask
-from flask_opentracing import FlaskTracer
-import lightstep.tracer
-import opentracing
-import urllib2
+import requests
+import time
+from opentracing_instrumentation.client_hooks import install_all_patches
+from jaeger_client import Config
 
-app = Flask(__name__)
+from os import getenv
 
-# one-time tracer initialization code
-ls_tracer = lightstep.tracer.init_tracer(group_name="example client", access_token="{your_lightstep_token}")
-# this tracer does not trace all requests, so the @tracer.trace() decorator must be used
-tracer = FlaskTracer(ls_tracer)
+JAEGER_HOST = getenv('JAEGER_HOST', 'localhost')
+WEBSERVER_HOST = getenv('WEBSERVER_HOST', 'localhost')
 
-@app.route("/")
-def index():
-	'''
-	Index page, has no tracing.
-	'''
-	return "Index Page"
+# Create configuration object with enabled logging and sampling of all requests.
+config = Config(config={'sampler': {'type': 'const', 'param': 1},
+                        'logging': True,
+                        'local_agent': {'reporting_host': JAEGER_HOST}},
+                service_name="jaeger_opentracing_example")
+tracer = config.initialize_tracer()
 
+# Automatically trace all requests made with 'requests' library.
+install_all_patches()
 
-@app.route("/request/<script>/<int:numrequests>")
-@tracer.trace("url")
-def send_multiple_requests(script, numrequests):
-	'''
-	Traced function that makes a request to the server
-	Injects the current span into headers to continue trace
-	'''
-	span = tracer.get_span()
-	def send_request():
-		url = "http://localhost:5000/"+str(script)
-		request = urllib2.Request(url)
-		inject_as_headers(ls_tracer, span, request)
-		try:
-			response = urllib2.urlopen(request)
-		except urllib2.URLError as ue:  
-			response = ue
-	for i in range(numrequests):
-		send_request()
-	return "Requests sent"
+url = "http://{}:5000/log".format(WEBSERVER_HOST)
+# Make the actual request to webserver.
+requests.get(url)
 
-@app.route('/log')
-@tracer.trace()
-def log_something():
-	'''
-	Traced function that logs something to the current 
-	request span.
-	'''
-	span = tracer.get_span()
-	span.log_event("hello world")
-	return "Something was logged"
-
-@app.route("/test")
-@tracer.trace()
-def test_lightstep_tracer():
-	'''
-	Simple traced function to ensure the tracer works.
-	'''
-	return "No errors"
-
-def inject_as_headers(tracer, span, request):
-    text_carrier = {}
-    tracer.inject(span.context, opentracing.Format.TEXT_MAP, text_carrier)
-    for k, v in text_carrier.iteritems():
-        request.add_header(k,v)
-
+# allow tracer to flush the spans - https://github.com/jaegertracing/jaeger-client-python/issues/50
+time.sleep(2)
+tracer.close()
