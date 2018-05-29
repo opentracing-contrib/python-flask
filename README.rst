@@ -107,7 +107,7 @@ If you want to make an RPC and continue an existing trace, you can inject the cu
         text_carrier = {}
         opentracing_tracer.inject(span, opentracing.Format.TEXT_MAP, text_carrier)
         for k, v in text_carrier.iteritems():
-            request.add_header(k,v)
+            new_request.add_header(k,v)
         ... # make request
 
 Examples
