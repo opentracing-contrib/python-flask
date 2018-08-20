@@ -25,8 +25,12 @@ setup(
         'Flask',
         'opentracing'
     ],
-    tests_require=['pytest'],
-    setup_requires=['pytest-runner'],
+    extras_require={
+        'tests': [
+            'pytest>=2.7,<3',
+            'pytest-cov',
+        ],
+    },
     classifiers=[
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
