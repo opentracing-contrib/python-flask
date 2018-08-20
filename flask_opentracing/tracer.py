@@ -3,12 +3,13 @@ from flask import _request_ctx_stack as stack
 
 
 class FlaskTracer(opentracing.Tracer):
-    '''
+    """
     Tracer that can trace certain requests to a Flask app.
 
     @param tracer the OpenTracing tracer implementation to trace requests with
-    '''
-    def __init__(self, tracer, trace_all_requests=False, app=None, traced_attributes=[]):
+    """
+    def __init__(self, tracer, trace_all_requests=False, app=None,
+                 traced_attributes=[]):
         if not callable(tracer):
             self.__tracer = tracer
         else:
@@ -35,14 +36,14 @@ class FlaskTracer(opentracing.Tracer):
         return self.__tracer
 
     def trace(self, *attributes):
-        '''
+        """
         Function decorator that traces functions
 
         NOTE: Must be placed after the @app.route decorator
 
         @param attributes any number of flask.Request attributes
         (strings) to be set as tags on the created span
-        '''
+        """
         def decorator(f):
             def wrapper(*args, **kwargs):
                 if not self._trace_all_requests:
@@ -57,14 +58,14 @@ class FlaskTracer(opentracing.Tracer):
         return decorator
 
     def get_span(self, request=None):
-        '''
+        """
         Returns the span tracing `request`, or the current request if
         `request==None`.
 
         If there is no such span, get_span returns None.
 
         @param request the request to get the span from
-        '''
+        """
         if request is None and stack.top:
             request = stack.top.request
         return self._current_spans.get(request, None)
@@ -73,16 +74,19 @@ class FlaskTracer(opentracing.Tracer):
         request = stack.top.request
         operation_name = request.endpoint
         headers = {}
-        for k,v in request.headers:
+        for k, v in request.headers:
             headers[k.lower()] = v
         span = None
         try:
-            span_ctx = self._tracer.extract(opentracing.Format.HTTP_HEADERS, headers)
-            span = self._tracer.start_span(operation_name=operation_name, child_of=span_ctx)
-        except (opentracing.InvalidCarrierException, opentracing.SpanContextCorruptedException) as e:
-            span = self._tracer.start_span(operation_name=operation_name, tags={"Extract failed": str(e)})
-        if span is None:
-            span = self._tracer.start_span(operation_name)
+            span_ctx = self._tracer.extract(opentracing.Format.HTTP_HEADERS,
+                                            headers)
+            span = self._tracer.start_span(operation_name=operation_name,
+                                           child_of=span_ctx)
+        except (opentracing.InvalidCarrierException,
+                opentracing.SpanContextCorruptedException) as e:
+            span = self._tracer.start_span(operation_name=operation_name,
+                                           tags={'Extract failed': str(e)})
+
         self._current_spans[request] = span
         for attr in attributes:
             if hasattr(request, attr):
@@ -92,7 +96,9 @@ class FlaskTracer(opentracing.Tracer):
 
     def _after_request_fn(self):
         request = stack.top.request
-        # the pop call can fail if the request is interrupted by a `before_request` method so we need a default
+
+        # the pop call can fail if the request is interrupted by a
+        # `before_request` method so we need a default
         span = self._current_spans.pop(request, None)
         if span is not None:
             span.finish()

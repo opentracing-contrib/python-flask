@@ -38,6 +38,9 @@ clean-test:
 	rm -f coverage.xml
 	rm -fr htmlcov/
 
+lint:
+	flake8 $(project) tests
+
 test:
 	$(pytest)
 
