@@ -2,7 +2,7 @@ import opentracing
 from flask import _request_ctx_stack as stack
 
 
-class FlaskTracer(opentracing.Tracer):
+class FlaskTracing(opentracing.Tracer):
     """
     Tracer that can trace certain requests to a Flask app.
 

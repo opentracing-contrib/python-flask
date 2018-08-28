@@ -1,6 +1,6 @@
 from flask import (Flask, request)
 import opentracing
-from flask_opentracing import FlaskTracer
+from flask_opentracing import FlaskTracing
 
 
 app = Flask(__name__)
@@ -8,9 +8,10 @@ test_app = app.test_client()
 
 
 empty_tracer = opentracing.Tracer()
-tracer_all = FlaskTracer(empty_tracer, True, app, ['url'])
-tracer = FlaskTracer(empty_tracer)
-tracer_deferred = FlaskTracer(lambda: opentracing.Tracer(), True, app, ['url'])
+tracing_all = FlaskTracing(empty_tracer, True, app, ['url'])
+tracing = FlaskTracing(empty_tracer)
+tracing_deferred = FlaskTracing(lambda: opentracing.Tracer(),
+                                True, app, ['url'])
 
 
 def flush_spans(tcr):
@@ -25,14 +26,14 @@ def check_test_works():
 
 
 @app.route('/another_test')
-@tracer.trace('url', 'url_rule')
+@tracing.trace('url', 'url_rule')
 def decorated_fn():
     return 'Success again'
 
 
 @app.route('/wire')
 def send_request():
-    span = tracer.get_span()
+    span = tracing.get_span()
     headers = {}
     empty_tracer.inject(span, opentracing.Format.TEXT_MAP, headers)
     rv = test_app.get('/test', headers=headers)
@@ -46,19 +47,19 @@ def test_on():
 def test_span_creation():
     with app.test_request_context('/test'):
         app.preprocess_request()
-        assert tracer_all.get_span(request)
-        assert not tracer.get_span(request)
-        assert tracer_deferred.get_span(request)
-        flush_spans(tracer_all)
-        flush_spans(tracer_deferred)
+        assert tracing_all.get_span(request)
+        assert not tracing.get_span(request)
+        assert tracing_deferred.get_span(request)
+        flush_spans(tracing_all)
+        flush_spans(tracing_deferred)
 
 
 def test_span_deletion():
-    assert not tracer_all._current_spans
-    assert not tracer_deferred._current_spans
+    assert not tracing_all._current_spans
+    assert not tracing_deferred._current_spans
     test_app.get('/test')
-    assert not tracer_all._current_spans
-    assert not tracer_deferred._current_spans
+    assert not tracing_all._current_spans
+    assert not tracing_deferred._current_spans
 
 
 def test_requests_distinct():
@@ -66,29 +67,29 @@ def test_requests_distinct():
         app.preprocess_request()
     with app.test_request_context('/test'):
         app.preprocess_request()
-        second_span = tracer_all._current_spans.pop(request)
+        second_span = tracing_all._current_spans.pop(request)
         assert second_span
         second_span.finish()
-        assert not tracer_all.get_span(request)
+        assert not tracing_all.get_span(request)
     # clear current spans
-    flush_spans(tracer_all)
-    flush_spans(tracer_deferred)
+    flush_spans(tracing_all)
+    flush_spans(tracing_deferred)
 
 
 def test_decorator():
     with app.test_request_context('/another_test'):
         app.preprocess_request()
-        assert not tracer.get_span(request)
-        assert len(tracer_deferred._current_spans) == 1
-        assert len(tracer_all._current_spans) == 1
-    flush_spans(tracer)
-    flush_spans(tracer_all)
-    flush_spans(tracer_deferred)
+        assert not tracing.get_span(request)
+        assert len(tracing_deferred._current_spans) == 1
+        assert len(tracing_all._current_spans) == 1
+    flush_spans(tracing)
+    flush_spans(tracing_all)
+    flush_spans(tracing_deferred)
 
     test_app.get('/another_test')
-    assert not tracer_all._current_spans
-    assert not tracer._current_spans
-    assert not tracer_deferred._current_spans
+    assert not tracing_all._current_spans
+    assert not tracing._current_spans
+    assert not tracing_deferred._current_spans
 
 
 def test_over_wire():

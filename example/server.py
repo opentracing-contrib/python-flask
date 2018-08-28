@@ -1,6 +1,6 @@
 import logging
 from jaeger_client import Config
-from flask_opentracing import FlaskTracer
+from flask_opentracing import FlaskTracing
 from flask import Flask, request
 from os import getenv
 JAEGER_HOST = getenv('JAEGER_HOST', 'localhost')
@@ -19,12 +19,12 @@ if __name__ == '__main__':
                         # Service name can be arbitrary string describing this particular web service.
                         service_name="jaeger_opentracing_example")
         jaeger_tracer = config.initialize_tracer()
-        tracer = FlaskTracer(jaeger_tracer)
+        tracing = FlaskTracing(jaeger_tracer)
 
         @app.route('/log')
-        @tracer.trace() # Indicate that /log endpoint should be traced
+        @tracing.trace() # Indicate that /log endpoint should be traced
         def log():
-                parent_span = tracer.get_span(request)
+                parent_span = tracing.get_span(request)
                 # Extract the span information for request object.
                 with jaeger_tracer.start_span("python webserver internal span of log method",
                                               child_of=parent_span) as span:

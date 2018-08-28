@@ -34,12 +34,12 @@ Trace All Requests
 .. code-block:: python
 
     import opentracing
-    from flask_opentracing import FlaskTracer
+    from flask_opentracing import FlaskTracing
 
     app = Flask(__name__)
 
     opentracing_tracer = ## some OpenTracing tracer implementation
-    tracer = FlaskTracer(opentracing_tracer, True, app, [optional_args])
+    tracing = FlaskTracing(opentracing_tracer, True, app, [optional_args])
 
 Trace Individual Requests
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -47,15 +47,15 @@ Trace Individual Requests
 .. code-block:: python
 
     import opentracing
-    from flask_opentracing import FlaskTracer
+    from flask_opentracing import FlaskTracing
 
     app = Flask(__name__)
 
     opentracing_tracer = ## some OpenTracing tracer implementation  
-    tracer = FlaskTracer(opentracing_tracer)
+    tracing = FlaskTracing(opentracing_tracer)
 
     @app.route('/some_url')
-    @tracer.trace(optional_args)
+    @tracing.trace(optional_args)
     def some_view_func():
         ...     
         return some_view 
@@ -63,7 +63,7 @@ Trace Individual Requests
 Accessing Spans Manually
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-In order to access the span for a request, we've provided an method `FlaskTracer.get_span(request)` that returns the span for the request, if it is exists and is not finished. This can be used to log important events to the span, set tags, or create child spans to trace non-RPC events. If no request is passed in, the current request will be used.
+In order to access the span for a request, we've provided an method `FlaskTracing.get_span(request)` that returns the span for the request, if it is exists and is not finished. This can be used to log important events to the span, set tags, or create child spans to trace non-RPC events. If no request is passed in, the current request will be used.
 
 Tracing an RPC
 ~~~~~~~~~~~~~~
@@ -72,10 +72,10 @@ If you want to make an RPC and continue an existing trace, you can inject the cu
 
 .. code-block:: python
 
-    @tracer.trace()
+    @tracing.trace()
     def some_view_func(request):
         new_request = some_http_request
-        current_span = tracer.get_span(request)
+        current_span = tracing.get_span(request)
         text_carrier = {}
         opentracing_tracer.inject(span, opentracing.Format.TEXT_MAP, text_carrier)
         for k, v in text_carrier.iteritems():
