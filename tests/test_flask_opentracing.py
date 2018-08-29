@@ -1,3 +1,5 @@
+import unittest
+
 from flask import (Flask, request)
 import opentracing
 from opentracing.mocktracer import MockTracer
@@ -41,58 +43,56 @@ def send_request():
     return str(rv.status_code)
 
 
-def test_on():
-    assert True
+class TestTracing(unittest.TestCase):
+    def setUp(self):
+        tracing_all._tracer.reset()
+        tracing._tracer.reset()
+        tracing_deferred._tracer.reset()
 
+    def test_span_creation(self):
+        with app.test_request_context('/test'):
+            app.preprocess_request()
+            assert tracing_all.get_span(request)
+            assert not tracing.get_span(request)
+            assert tracing_deferred.get_span(request)
+            flush_spans(tracing_all)
+            flush_spans(tracing_deferred)
 
-def test_span_creation():
-    with app.test_request_context('/test'):
-        app.preprocess_request()
-        assert tracing_all.get_span(request)
-        assert not tracing.get_span(request)
-        assert tracing_deferred.get_span(request)
+    def test_span_deletion(self):
+        assert not tracing_all._current_spans
+        assert not tracing_deferred._current_spans
+        test_app.get('/test')
+        assert not tracing_all._current_spans
+        assert not tracing_deferred._current_spans
+
+    def test_requests_distinct(self):
+        with app.test_request_context('/test'):
+            app.preprocess_request()
+        with app.test_request_context('/test'):
+            app.preprocess_request()
+            second_span = tracing_all._current_spans.pop(request)
+            assert second_span
+            second_span.finish()
+            assert not tracing_all.get_span(request)
+        # clear current spans
         flush_spans(tracing_all)
         flush_spans(tracing_deferred)
 
+    def test_decorator(self):
+        with app.test_request_context('/another_test'):
+            app.preprocess_request()
+            assert not tracing.get_span(request)
+            assert len(tracing_deferred._current_spans) == 1
+            assert len(tracing_all._current_spans) == 1
+        flush_spans(tracing)
+        flush_spans(tracing_all)
+        flush_spans(tracing_deferred)
 
-def test_span_deletion():
-    assert not tracing_all._current_spans
-    assert not tracing_deferred._current_spans
-    test_app.get('/test')
-    assert not tracing_all._current_spans
-    assert not tracing_deferred._current_spans
+        test_app.get('/another_test')
+        assert not tracing_all._current_spans
+        assert not tracing._current_spans
+        assert not tracing_deferred._current_spans
 
-
-def test_requests_distinct():
-    with app.test_request_context('/test'):
-        app.preprocess_request()
-    with app.test_request_context('/test'):
-        app.preprocess_request()
-        second_span = tracing_all._current_spans.pop(request)
-        assert second_span
-        second_span.finish()
-        assert not tracing_all.get_span(request)
-    # clear current spans
-    flush_spans(tracing_all)
-    flush_spans(tracing_deferred)
-
-
-def test_decorator():
-    with app.test_request_context('/another_test'):
-        app.preprocess_request()
-        assert not tracing.get_span(request)
-        assert len(tracing_deferred._current_spans) == 1
-        assert len(tracing_all._current_spans) == 1
-    flush_spans(tracing)
-    flush_spans(tracing_all)
-    flush_spans(tracing_deferred)
-
-    test_app.get('/another_test')
-    assert not tracing_all._current_spans
-    assert not tracing._current_spans
-    assert not tracing_deferred._current_spans
-
-
-def test_over_wire():
-    rv = test_app.get('/wire')
-    assert '200' in str(rv.status_code)
+    def test_over_wire(self):
+        rv = test_app.get('/wire')
+        assert '200' in str(rv.status_code)
