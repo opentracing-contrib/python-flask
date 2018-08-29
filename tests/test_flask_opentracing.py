@@ -1,5 +1,6 @@
 from flask import (Flask, request)
 import opentracing
+from opentracing.mocktracer import MockTracer
 from flask_opentracing import FlaskTracing
 
 
@@ -8,9 +9,9 @@ test_app = app.test_client()
 
 
 empty_tracer = opentracing.Tracer()
-tracing_all = FlaskTracing(empty_tracer, True, app, ['url'])
-tracing = FlaskTracing(empty_tracer)
-tracing_deferred = FlaskTracing(lambda: opentracing.Tracer(),
+tracing_all = FlaskTracing(MockTracer(), True, app, ['url'])
+tracing = FlaskTracing(MockTracer())
+tracing_deferred = FlaskTracing(lambda: MockTracer(),
                                 True, app, ['url'])
 
 
