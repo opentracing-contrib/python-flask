@@ -2,6 +2,7 @@ import unittest
 
 from flask import (Flask, request)
 import opentracing
+from opentracing.ext import tags
 from opentracing.mocktracer import MockTracer
 from flask_opentracing import FlaskTracing
 
@@ -64,6 +65,20 @@ class TestTracing(unittest.TestCase):
         test_app.get('/test')
         assert not tracing_all._current_spans
         assert not tracing_deferred._current_spans
+
+    def test_span_tags(self):
+        test_app.get('/test')
+
+        spans = tracing_all._tracer.finished_spans()
+        assert len(spans) == 1
+        assert spans[0].tags == {
+            tags.COMPONENT: 'Flask',
+            tags.HTTP_METHOD: 'GET',
+            tags.HTTP_STATUS_CODE: 200,
+            tags.SPAN_KIND: tags.SPAN_KIND_RPC_SERVER,
+            tags.HTTP_URL: 'http://localhost/test',
+            'url': 'http://localhost/test',  # extra tag
+        }
 
     def test_requests_distinct(self):
         with app.test_request_context('/test'):
