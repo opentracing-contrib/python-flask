@@ -83,9 +83,8 @@ class FlaskTracing(opentracing.Tracer):
             span = self._tracer.start_span(operation_name=operation_name,
                                            child_of=span_ctx)
         except (opentracing.InvalidCarrierException,
-                opentracing.SpanContextCorruptedException) as e:
-            span = self._tracer.start_span(operation_name=operation_name,
-                                           tags={'Extract failed': str(e)})
+                opentracing.SpanContextCorruptedException):
+            span = self._tracer.start_span(operation_name=operation_name)
 
         self._current_spans[request] = span
         for attr in attributes:
