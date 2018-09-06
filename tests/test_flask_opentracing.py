@@ -35,6 +35,12 @@ def decorated_fn():
     return 'Success again'
 
 
+@app.route('/another_test_simple')
+@tracing.trace()
+def decorated_fn_simple():
+    return 'Success again'
+
+
 @app.route('/wire')
 def send_request():
     span = tracing.get_span()
@@ -67,17 +73,15 @@ class TestTracing(unittest.TestCase):
         assert not tracing_deferred._current_spans
 
     def test_span_tags(self):
-        test_app.get('/test')
+        test_app.get('/another_test_simple')
 
-        spans = tracing_all._tracer.finished_spans()
+        spans = tracing._tracer.finished_spans()
         assert len(spans) == 1
         assert spans[0].tags == {
             tags.COMPONENT: 'Flask',
             tags.HTTP_METHOD: 'GET',
-            tags.HTTP_STATUS_CODE: 200,
             tags.SPAN_KIND: tags.SPAN_KIND_RPC_SERVER,
-            tags.HTTP_URL: 'http://localhost/test',
-            'url': 'http://localhost/test',  # extra tag
+            tags.HTTP_URL: 'http://localhost/another_test_simple',
         }
 
     def test_requests_distinct(self):
