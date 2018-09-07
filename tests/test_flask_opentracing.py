@@ -2,6 +2,7 @@ import unittest
 
 from flask import (Flask, request)
 import opentracing
+from opentracing.ext import tags
 from opentracing.mocktracer import MockTracer
 from flask_opentracing import FlaskTracing
 
@@ -31,6 +32,12 @@ def check_test_works():
 @app.route('/another_test')
 @tracing.trace('url', 'url_rule')
 def decorated_fn():
+    return 'Success again'
+
+
+@app.route('/another_test_simple')
+@tracing.trace()
+def decorated_fn_simple():
     return 'Success again'
 
 
@@ -64,6 +71,18 @@ class TestTracing(unittest.TestCase):
         test_app.get('/test')
         assert not tracing_all._current_spans
         assert not tracing_deferred._current_spans
+
+    def test_span_tags(self):
+        test_app.get('/another_test_simple')
+
+        spans = tracing._tracer.finished_spans()
+        assert len(spans) == 1
+        assert spans[0].tags == {
+            tags.COMPONENT: 'Flask',
+            tags.HTTP_METHOD: 'GET',
+            tags.SPAN_KIND: tags.SPAN_KIND_RPC_SERVER,
+            tags.HTTP_URL: 'http://localhost/another_test_simple',
+        }
 
     def test_requests_distinct(self):
         with app.test_request_context('/test'):

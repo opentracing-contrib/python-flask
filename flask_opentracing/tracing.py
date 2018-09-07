@@ -1,4 +1,5 @@
 import opentracing
+from opentracing.ext import tags
 from flask import _request_ctx_stack as stack
 
 
@@ -26,7 +27,7 @@ class FlaskTracing(opentracing.Tracer):
 
             @app.after_request
             def end_trace(response):
-                self._after_request_fn()
+                self._after_request_fn(response)
                 return response
 
     @property
@@ -87,17 +88,26 @@ class FlaskTracing(opentracing.Tracer):
             span = self._tracer.start_span(operation_name=operation_name)
 
         self._current_spans[request] = span
+
+        span.set_tag(tags.COMPONENT, 'Flask')
+        span.set_tag(tags.HTTP_METHOD, request.method)
+        span.set_tag(tags.HTTP_URL, request.base_url)
+        span.set_tag(tags.SPAN_KIND, tags.SPAN_KIND_RPC_SERVER)
+
         for attr in attributes:
             if hasattr(request, attr):
                 payload = str(getattr(request, attr))
                 if payload:
                     span.set_tag(attr, payload)
 
-    def _after_request_fn(self):
+    def _after_request_fn(self, response=None):
         request = stack.top.request
 
         # the pop call can fail if the request is interrupted by a
         # `before_request` method so we need a default
         span = self._current_spans.pop(request, None)
         if span is not None:
+            if response is not None:
+                span.set_tag(tags.HTTP_STATUS_CODE, response.status_code)
+
             span.finish()
