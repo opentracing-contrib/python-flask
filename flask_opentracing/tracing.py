@@ -9,13 +9,15 @@ class FlaskTracing(opentracing.Tracer):
 
     @param tracer the OpenTracing tracer implementation to trace requests with
     """
-    def __init__(self, tracer, trace_all_requests=False, app=None,
+    def __init__(self, tracer=None, trace_all_requests=False, app=None,
                  traced_attributes=[]):
         if not callable(tracer):
             self.__tracer = tracer
+            self.__tracer_getter = None
         else:
             self.__tracer = None
             self.__tracer_getter = tracer
+
         self._trace_all_requests = trace_all_requests
         self._current_spans = {}
 
@@ -32,8 +34,17 @@ class FlaskTracing(opentracing.Tracer):
 
     @property
     def _tracer(self):
+        """DEPRECATED"""
+        return self.tracer
+
+    @property
+    def tracer(self):
         if not self.__tracer:
+            if self.__tracer_getter is None:
+                return opentracing.tracer
+
             self.__tracer = self.__tracer_getter()
+
         return self.__tracer
 
     def trace(self, *attributes):
@@ -79,13 +90,13 @@ class FlaskTracing(opentracing.Tracer):
             headers[k.lower()] = v
         span = None
         try:
-            span_ctx = self._tracer.extract(opentracing.Format.HTTP_HEADERS,
-                                            headers)
-            span = self._tracer.start_span(operation_name=operation_name,
-                                           child_of=span_ctx)
+            span_ctx = self.tracer.extract(opentracing.Format.HTTP_HEADERS,
+                                           headers)
+            span = self.tracer.start_span(operation_name=operation_name,
+                                          child_of=span_ctx)
         except (opentracing.InvalidCarrierException,
                 opentracing.SpanContextCorruptedException):
-            span = self._tracer.start_span(operation_name=operation_name)
+            span = self.tracer.start_span(operation_name=operation_name)
 
         self._current_spans[request] = span
 
