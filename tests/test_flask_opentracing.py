@@ -12,7 +12,6 @@ app = Flask(__name__)
 test_app = app.test_client()
 
 
-empty_tracer = opentracing.Tracer()
 tracing_all = FlaskTracing(MockTracer(), True, app, ['url'])
 tracing = FlaskTracing(MockTracer())
 tracing_deferred = FlaskTracing(lambda: MockTracer(),
@@ -44,9 +43,11 @@ def decorated_fn_simple():
 
 @app.route('/wire')
 def send_request():
-    span = tracing.get_span()
+    span = tracing_all.get_span()
     headers = {}
-    empty_tracer.inject(span, opentracing.Format.TEXT_MAP, headers)
+    tracing_all.tracer.inject(span.context,
+                              opentracing.Format.TEXT_MAP,
+                              headers)
     rv = test_app.get('/test', headers=headers)
     return str(rv.status_code)
 
@@ -129,3 +130,8 @@ class TestTracing(unittest.TestCase):
     def test_over_wire(self):
         rv = test_app.get('/wire')
         assert '200' in str(rv.status_code)
+
+        spans = tracing_all.tracer.finished_spans()
+        assert len(spans) == 2
+        assert spans[0].context.trace_id == spans[1].context.trace_id
+        assert spans[0].parent_id == spans[1].context.span_id
