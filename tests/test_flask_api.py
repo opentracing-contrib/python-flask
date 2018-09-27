@@ -1,4 +1,5 @@
 import mock
+import pytest
 import unittest
 
 import opentracing
@@ -18,3 +19,7 @@ class TestValues(unittest.TestCase):
             assert tracing.tracer is opentracing.tracer
             opentracing.tracer = object()
             assert tracing.tracer is opentracing.tracer
+
+    def test_start_span_invalid(self):
+        with pytest.raises(ValueError):
+            FlaskTracing(start_span_cb=0)

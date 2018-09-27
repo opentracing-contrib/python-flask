@@ -121,3 +121,33 @@ class TestTracing(unittest.TestCase):
         assert len(spans) == 2
         assert spans[0].context.trace_id == spans[1].context.trace_id
         assert spans[0].parent_id == spans[1].context.span_id
+
+
+class TestTracingStartSpanCallback(unittest.TestCase):
+    def test_simple(self):
+        def start_span_cb(span, request):
+            span.set_tag('component', 'not-flask')
+            span.set_tag('mytag', 'myvalue')
+
+        tracing = FlaskTracing(MockTracer(), True, app,
+                               start_span_cb=start_span_cb)
+        rv = test_app.get('/test')
+        assert '200' in str(rv.status_code)
+
+        spans = tracing.tracer.finished_spans()
+        assert len(spans) == 1
+        assert spans[0].tags.get(tags.COMPONENT, None) == 'not-flask'
+        assert spans[0].tags.get('mytag', None) == 'myvalue'
+
+    def test_error(self):
+        def start_span_cb(span, request):
+            raise RuntimeError('Should not happen')
+
+        tracing = FlaskTracing(MockTracer(), True, app,
+                               start_span_cb=start_span_cb)
+        rv = test_app.get('/test')
+        assert '200' in str(rv.status_code)
+
+        spans = tracing.tracer.finished_spans()
+        assert len(spans) == 1
+        assert spans[0].tags.get(tags.ERROR, None) is None

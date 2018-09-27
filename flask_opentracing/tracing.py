@@ -10,7 +10,11 @@ class FlaskTracing(opentracing.Tracer):
     @param tracer the OpenTracing tracer implementation to trace requests with
     """
     def __init__(self, tracer=None, trace_all_requests=False, app=None,
-                 traced_attributes=[]):
+                 traced_attributes=[], start_span_cb=None):
+
+        if start_span_cb is not None and not callable(start_span_cb):
+            raise ValueError('start_span_cb is not callable')
+
         if not callable(tracer):
             self.__tracer = tracer
             self.__tracer_getter = None
@@ -19,6 +23,7 @@ class FlaskTracing(opentracing.Tracer):
             self.__tracer_getter = tracer
 
         self._trace_all_requests = trace_all_requests
+        self._start_span_cb = start_span_cb
         self._current_spans = {}
 
         # tracing all requests requires that app != None
@@ -111,6 +116,8 @@ class FlaskTracing(opentracing.Tracer):
                 if payload:
                     span.set_tag(attr, payload)
 
+        self._call_start_span_cb(span, request)
+
     def _after_request_fn(self, response=None):
         request = stack.top.request
 
@@ -122,3 +129,12 @@ class FlaskTracing(opentracing.Tracer):
                 span.set_tag(tags.HTTP_STATUS_CODE, response.status_code)
 
             span.finish()
+
+    def _call_start_span_cb(self, span, request):
+        if self._start_span_cb is None:
+            return
+
+        try:
+            self._start_span_cb(span, request)
+        except Exception:
+            pass
