@@ -1,4 +1,3 @@
-import mock
 import unittest
 
 from flask import (Flask, request)
@@ -57,19 +56,6 @@ class TestTracing(unittest.TestCase):
         tracing_all._tracer.reset()
         tracing._tracer.reset()
         tracing_deferred._tracer.reset()
-
-    def test_tracer(self):
-        tracer = opentracing.Tracer()
-        tracing = FlaskTracing(tracer)
-        assert tracing.tracer is tracer
-        assert tracing.tracer is tracing._tracer
-
-    def test_global_tracer(self):
-        tracing = FlaskTracing()
-        with mock.patch('opentracing.tracer'):
-            assert tracing.tracer is opentracing.tracer
-            opentracing.tracer = object()
-            assert tracing.tracer is opentracing.tracer
 
     def test_span_creation(self):
         with app.test_request_context('/test'):
