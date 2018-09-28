@@ -24,7 +24,7 @@ class FlaskTracing(opentracing.Tracer):
 
         self._trace_all_requests = trace_all_requests
         self._start_span_cb = start_span_cb
-        self._current_spans = {}
+        self._current_scopes = {}
 
         # tracing all requests requires that app != None
         if self._trace_all_requests:
@@ -85,7 +85,9 @@ class FlaskTracing(opentracing.Tracer):
         """
         if request is None and stack.top:
             request = stack.top.request
-        return self._current_spans.get(request, None)
+
+        scope = self._current_scopes.get(request, None)
+        return None if scope is None else scope.span
 
     def _before_request_fn(self, attributes):
         request = stack.top.request
@@ -93,18 +95,19 @@ class FlaskTracing(opentracing.Tracer):
         headers = {}
         for k, v in request.headers:
             headers[k.lower()] = v
-        span = None
+
         try:
             span_ctx = self.tracer.extract(opentracing.Format.HTTP_HEADERS,
                                            headers)
-            span = self.tracer.start_span(operation_name=operation_name,
-                                          child_of=span_ctx)
+            scope = self.tracer.start_active_span(operation_name,
+                                                  child_of=span_ctx)
         except (opentracing.InvalidCarrierException,
                 opentracing.SpanContextCorruptedException):
-            span = self.tracer.start_span(operation_name=operation_name)
+            scope = self.tracer.start_active_span(operation_name)
 
-        self._current_spans[request] = span
+        self._current_scopes[request] = scope
 
+        span = scope.span
         span.set_tag(tags.COMPONENT, 'Flask')
         span.set_tag(tags.HTTP_METHOD, request.method)
         span.set_tag(tags.HTTP_URL, request.base_url)
@@ -123,12 +126,12 @@ class FlaskTracing(opentracing.Tracer):
 
         # the pop call can fail if the request is interrupted by a
         # `before_request` method so we need a default
-        span = self._current_spans.pop(request, None)
-        if span is not None:
+        scope = self._current_scopes.pop(request, None)
+        if scope is not None:
             if response is not None:
-                span.set_tag(tags.HTTP_STATUS_CODE, response.status_code)
+                scope.span.set_tag(tags.HTTP_STATUS_CODE, response.status_code)
 
-            span.finish()
+            scope.close()
 
     def _call_start_span_cb(self, span, request):
         if self._start_span_cb is None:
