@@ -18,9 +18,9 @@ tracing_deferred = FlaskTracing(lambda: MockTracer(),
 
 
 def flush_spans(tcr):
-    for req in tcr._current_spans:
-        tcr._current_spans[req].finish()
-    tcr._current_spans = {}
+    for req in tcr._current_scopes:
+        tcr._current_scopes[req].close()
+    tcr._current_scopes = {}
 
 
 @app.route('/test')
@@ -38,6 +38,13 @@ def decorated_fn():
 @tracing.trace()
 def decorated_fn_simple():
     return 'Success again'
+
+
+@app.route('/decorated_child_span_test')
+@tracing.trace()
+def decorated_fn_with_child_span():
+    with tracing.tracer.start_active_span('child'):
+        return 'Success'
 
 
 @app.route('/wire')
@@ -63,15 +70,19 @@ class TestTracing(unittest.TestCase):
             assert tracing_all.get_span(request)
             assert not tracing.get_span(request)
             assert tracing_deferred.get_span(request)
+
+            active_span = tracing_all.tracer.active_span
+            assert tracing_all.get_span(request) is active_span
+
             flush_spans(tracing_all)
             flush_spans(tracing_deferred)
 
     def test_span_deletion(self):
-        assert not tracing_all._current_spans
-        assert not tracing_deferred._current_spans
+        assert not tracing_all._current_scopes
+        assert not tracing_deferred._current_scopes
         test_app.get('/test')
-        assert not tracing_all._current_spans
-        assert not tracing_deferred._current_spans
+        assert not tracing_all._current_scopes
+        assert not tracing_deferred._current_scopes
 
     def test_span_tags(self):
         test_app.get('/another_test_simple')
@@ -90,9 +101,9 @@ class TestTracing(unittest.TestCase):
             app.preprocess_request()
         with app.test_request_context('/test'):
             app.preprocess_request()
-            second_span = tracing_all._current_spans.pop(request)
-            assert second_span
-            second_span.finish()
+            second_scope = tracing_all._current_scopes.pop(request)
+            assert second_scope
+            second_scope.close()
             assert not tracing_all.get_span(request)
         # clear current spans
         flush_spans(tracing_all)
@@ -102,22 +113,35 @@ class TestTracing(unittest.TestCase):
         with app.test_request_context('/another_test'):
             app.preprocess_request()
             assert not tracing.get_span(request)
-            assert len(tracing_deferred._current_spans) == 1
-            assert len(tracing_all._current_spans) == 1
+            assert len(tracing_deferred._current_scopes) == 1
+            assert len(tracing_all._current_scopes) == 1
+
+            active_span = tracing_all.tracer.active_span
+            assert tracing_all.get_span(request) is active_span
+
         flush_spans(tracing)
         flush_spans(tracing_all)
         flush_spans(tracing_deferred)
 
         test_app.get('/another_test')
-        assert not tracing_all._current_spans
-        assert not tracing._current_spans
-        assert not tracing_deferred._current_spans
+        assert not tracing_all._current_scopes
+        assert not tracing._current_scopes
+        assert not tracing_deferred._current_scopes
 
     def test_over_wire(self):
         rv = test_app.get('/wire')
         assert '200' in str(rv.status_code)
 
         spans = tracing_all.tracer.finished_spans()
+        assert len(spans) == 2
+        assert spans[0].context.trace_id == spans[1].context.trace_id
+        assert spans[0].parent_id == spans[1].context.span_id
+
+    def test_child_span(self):
+        rv = test_app.get('/decorated_child_span_test')
+        assert '200' in str(rv.status_code)
+
+        spans = tracing.tracer.finished_spans()
         assert len(spans) == 2
         assert spans[0].context.trace_id == spans[1].context.trace_id
         assert spans[0].parent_id == spans[1].context.span_id
