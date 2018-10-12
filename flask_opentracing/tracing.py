@@ -9,11 +9,17 @@ class FlaskTracing(opentracing.Tracer):
 
     @param tracer the OpenTracing tracer implementation to trace requests with
     """
-    def __init__(self, tracer=None, trace_all_requests=False, app=None,
+    def __init__(self, tracer=None, trace_all_requests=None, app=None,
                  traced_attributes=[], start_span_cb=None):
 
         if start_span_cb is not None and not callable(start_span_cb):
             raise ValueError('start_span_cb is not callable')
+
+        if trace_all_requests is True and app is None:
+            raise ValueError('trace_all_requests=True requires an app object')
+
+        if trace_all_requests is None:
+            trace_all_requests = False if app is None else True
 
         if not callable(tracer):
             self.__tracer = tracer
