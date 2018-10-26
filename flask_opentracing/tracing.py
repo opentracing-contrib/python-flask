@@ -43,6 +43,11 @@ class FlaskTracing(opentracing.Tracer):
                 self._after_request_fn(response)
                 return response
 
+            @app.teardown_request
+            def end_trace_with_error(error):
+                if error is not None:
+                    self._after_request_fn(error=error)
+
     @property
     def _tracer(self):
         """DEPRECATED"""
@@ -69,13 +74,20 @@ class FlaskTracing(opentracing.Tracer):
         """
         def decorator(f):
             def wrapper(*args, **kwargs):
-                if not self._trace_all_requests:
-                    self._before_request_fn(list(attributes))
+                if self._trace_all_requests:
+                    return f(*args, **kwargs)
+
+                self._before_request_fn(list(attributes))
+                try:
                     r = f(*args, **kwargs)
                     self._after_request_fn()
-                    return r
-                else:
-                    return f(*args, **kwargs)
+                except Exception as e:
+                    self._after_request_fn(error=e)
+                    raise
+
+                self._after_request_fn()
+                return r
+
             wrapper.__name__ = f.__name__
             return wrapper
         return decorator
@@ -127,17 +139,25 @@ class FlaskTracing(opentracing.Tracer):
 
         self._call_start_span_cb(span, request)
 
-    def _after_request_fn(self, response=None):
+    def _after_request_fn(self, response=None, error=None):
         request = stack.top.request
 
         # the pop call can fail if the request is interrupted by a
         # `before_request` method so we need a default
         scope = self._current_scopes.pop(request, None)
-        if scope is not None:
-            if response is not None:
-                scope.span.set_tag(tags.HTTP_STATUS_CODE, response.status_code)
+        if scope is None:
+            return
 
-            scope.close()
+        if response is not None:
+            scope.span.set_tag(tags.HTTP_STATUS_CODE, response.status_code)
+        if error is not None:
+            scope.span.set_tag(tags.ERROR, True)
+            scope.span.log_kv({
+                'event': tags.ERROR,
+                'error.object': error,
+            })
+
+        scope.close()
 
     def _call_start_span_cb(self, span, request):
         if self._start_span_cb is None:

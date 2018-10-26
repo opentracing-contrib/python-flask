@@ -41,6 +41,12 @@ def decorated_fn_simple():
     return 'Success again'
 
 
+@app.route('/error_test')
+@tracing.trace()
+def decorated_fn_with_error():
+    raise RuntimeError('Should not happen')
+
+
 @app.route('/decorated_child_span_test')
 @tracing.trace()
 def decorated_fn_with_child_span():
@@ -138,6 +144,36 @@ class TestTracing(unittest.TestCase):
 
         spans = tracing.tracer.finished_spans()
         assert len(spans) == 0
+
+    def test_error(self):
+        try:
+            test_app.get('/error_test')
+        except RuntimeError:
+            pass
+
+        assert len(tracing._current_scopes) == 0
+        assert len(tracing_all._current_scopes) == 0
+        assert len(tracing_deferred._current_scopes) == 0
+
+        # Registered handler.
+        spans = tracing_all.tracer.finished_spans()
+        assert len(spans) == 1
+        self._verify_error(spans[0])
+
+        # Decorator.
+        spans = tracing.tracer.finished_spans()
+        assert len(spans) == 1
+        self._verify_error(spans[0])
+
+    def _verify_error(self, span):
+        assert span.tags.get(tags.ERROR, None) is True
+
+        assert len(span.logs) == 1
+        assert span.logs[0].key_values.get('event', None) is tags.ERROR
+        assert isinstance(
+                span.logs[0].key_values.get('error.object', None),
+                RuntimeError
+        )
 
     def test_over_wire(self):
         rv = test_app.get('/wire')
