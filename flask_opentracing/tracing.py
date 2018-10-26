@@ -34,19 +34,32 @@ class FlaskTracing(opentracing.Tracer):
 
         # tracing all requests requires that app != None
         if self._trace_all_requests:
-            @app.before_request
-            def start_trace():
-                self._before_request_fn(traced_attributes)
+            self._register_app_handlers(app, traced_attributes)
 
-            @app.after_request
-            def end_trace(response):
-                self._after_request_fn(response)
-                return response
+    def _register_app_handlers(self, app, traced_attributes):
+        @app.before_request
+        def start_trace():
+            self._before_request_fn(traced_attributes)
 
-            @app.teardown_request
-            def end_trace_with_error(error):
-                if error is not None:
-                    self._after_request_fn(error=error)
+        @app.after_request
+        def end_trace(response):
+            self._after_request_fn(response)
+            return response
+
+        @app.teardown_request
+        def end_trace_with_error(error):
+            if error is not None:
+                self._after_request_fn(error=error)
+
+    def set_app(self, app, traced_attributes=[]):
+        if app is None:
+            raise ValueError('a valid app object is required')
+
+        if self._trace_all_requests:
+            raise RuntimeError('There is an app registered already')
+
+        self._register_app_handlers(app, traced_attributes)
+        self._trace_all_requests = True
 
     @property
     def _tracer(self):

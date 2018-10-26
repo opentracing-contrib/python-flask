@@ -16,12 +16,23 @@ tracing_all = FlaskTracing(MockTracer(), True, app, ['url'])
 tracing = FlaskTracing(MockTracer())
 tracing_deferred = FlaskTracing(lambda: MockTracer(),
                                 True, app, ['url'])
+tracing_late_app_set = FlaskTracing(MockTracer())
+tracing_late_app_set.set_app(app)
 
 
-def flush_spans(tcr):
-    for req in tcr._current_scopes:
-        tcr._current_scopes[req].close()
-    tcr._current_scopes = {}
+all_tracing_objects = [
+    tracing_all,
+    tracing,
+    tracing_deferred,
+    tracing_late_app_set,
+]
+
+
+def flush_spans():
+    for tcr in all_tracing_objects:
+        for req in tcr._current_scopes:
+            tcr._current_scopes[req].close()
+        tcr._current_scopes = {}
 
 
 @app.route('/test')
@@ -67,9 +78,8 @@ def send_request():
 
 class TestTracing(unittest.TestCase):
     def setUp(self):
-        tracing_all._tracer.reset()
-        tracing._tracer.reset()
-        tracing_deferred._tracer.reset()
+        for tcr in all_tracing_objects:
+            tcr.tracer.reset()
 
     def test_span_creation(self):
         with app.test_request_context('/test'):
@@ -77,19 +87,21 @@ class TestTracing(unittest.TestCase):
             assert tracing_all.get_span(request)
             assert not tracing.get_span(request)
             assert tracing_deferred.get_span(request)
+            assert tracing_late_app_set.get_span(request)
 
             active_span = tracing_all.tracer.active_span
             assert tracing_all.get_span(request) is active_span
 
-            flush_spans(tracing_all)
-            flush_spans(tracing_deferred)
+            flush_spans()
 
     def test_span_deletion(self):
         assert not tracing_all._current_scopes
         assert not tracing_deferred._current_scopes
+        assert not tracing_late_app_set._current_scopes
         test_app.get('/test')
         assert not tracing_all._current_scopes
         assert not tracing_deferred._current_scopes
+        assert not tracing_late_app_set._current_scopes
 
     def test_span_tags(self):
         test_app.get('/another_test_simple')
@@ -99,6 +111,19 @@ class TestTracing(unittest.TestCase):
         assert spans[0].tags == {
             tags.COMPONENT: 'Flask',
             tags.HTTP_METHOD: 'GET',
+            tags.SPAN_KIND: tags.SPAN_KIND_RPC_SERVER,
+            tags.HTTP_URL: 'http://localhost/another_test_simple',
+        }
+
+    def test_span_tags_late_app_set(self):
+        test_app.get('/another_test_simple')
+
+        spans = tracing_late_app_set._tracer.finished_spans()
+        assert len(spans) == 1
+        assert spans[0].tags == {
+            tags.COMPONENT: 'Flask',
+            tags.HTTP_METHOD: 'GET',
+            tags.HTTP_STATUS_CODE: 200,
             tags.SPAN_KIND: tags.SPAN_KIND_RPC_SERVER,
             tags.HTTP_URL: 'http://localhost/another_test_simple',
         }
@@ -113,27 +138,26 @@ class TestTracing(unittest.TestCase):
             second_scope.close()
             assert not tracing_all.get_span(request)
         # clear current spans
-        flush_spans(tracing_all)
-        flush_spans(tracing_deferred)
+        flush_spans()
 
     def test_decorator(self):
         with app.test_request_context('/another_test'):
             app.preprocess_request()
             assert not tracing.get_span(request)
             assert len(tracing_deferred._current_scopes) == 1
+            assert len(tracing_late_app_set._current_scopes) == 1
             assert len(tracing_all._current_scopes) == 1
 
             active_span = tracing_all.tracer.active_span
             assert tracing_all.get_span(request) is active_span
 
-        flush_spans(tracing)
-        flush_spans(tracing_all)
-        flush_spans(tracing_deferred)
+        flush_spans()
 
         test_app.get('/another_test')
         assert not tracing_all._current_scopes
         assert not tracing._current_scopes
         assert not tracing_deferred._current_scopes
+        assert not tracing_late_app_set._current_scopes
 
     def test_decorator_trace_all(self):
         # Fake we are tracing all, which should disable
@@ -154,6 +178,7 @@ class TestTracing(unittest.TestCase):
         assert len(tracing._current_scopes) == 0
         assert len(tracing_all._current_scopes) == 0
         assert len(tracing_deferred._current_scopes) == 0
+        assert len(tracing_late_app_set._current_scopes) == 0
 
         # Registered handler.
         spans = tracing_all.tracer.finished_spans()
