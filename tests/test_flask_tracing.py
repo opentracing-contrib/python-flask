@@ -1,3 +1,4 @@
+import mock
 import unittest
 
 from flask import (Flask, request)
@@ -127,6 +128,16 @@ class TestTracing(unittest.TestCase):
         assert not tracing_all._current_scopes
         assert not tracing._current_scopes
         assert not tracing_deferred._current_scopes
+
+    def test_decorator_trace_all(self):
+        # Fake we are tracing all, which should disable
+        # tracing through our decorator.
+        with mock.patch.object(tracing, '_trace_all_requests', new=True):
+            rv = test_app.get('/another_test_simple')
+            assert '200' in str(rv.status_code)
+
+        spans = tracing.tracer.finished_spans()
+        assert len(spans) == 0
 
     def test_over_wire(self):
         rv = test_app.get('/wire')
