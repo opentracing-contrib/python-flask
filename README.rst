@@ -8,8 +8,11 @@ As core services and libraries adopt OpenTracing, the application builder is no 
 
 If you want to learn more about the underlying python API, visit the python `source code`_.
 
+If you are migrating from the 0.x series, you may want to read the list of `breaking changes`_.
+
 .. _The OpenTracing Project: http://opentracing.io/
 .. _source code: https://github.com/opentracing/opentracing-python
+.. _breaking changes: #breaking-changes-from-0-x
 
 Installation
 ============
@@ -119,6 +122,18 @@ with integrated OpenTracing tracers.
 .. _examples: https://github.com/opentracing-contrib/python-flask/tree/master/example
 
 `This tutorial <http://blog.scoutapp.com/articles/2018/01/15/tutorial-tracing-python-flask-requests-with-opentracing>`_ has a step-by-step guide for using `Flask-Opentracing` with `Jaeger <https://github.com/jaegertracing/jaeger>`_.
+
+Breaking changes from 0.x
+=========================
+
+Starting with the 1.0 version, a few changes have taken place from previous versions:
+
+* ``FlaskTracer`` has been renamed to ``FlaskTracing``, although ``FlaskTracing``
+  can be used still as a deprecated name.
+* When passing an ``Application`` object at ``FlaskTracing`` creation time,
+  ``trace_all_requests`` defaults to ``True``.
+* When no ``opentracing.Tracer`` is provided, ``FlaskTracing`` will rely on the
+  global tracer.
 
 Further Information
 ===================
