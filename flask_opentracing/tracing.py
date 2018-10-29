@@ -52,6 +52,15 @@ class FlaskTracing(opentracing.Tracer):
                 self._after_request_fn(error=error)
 
     def set_app(self, app, traced_attributes=[]):
+        """
+        Set the app for which all requests are traced,
+        optionally passing a list of attributes to include
+        as tags in each Span object.
+
+        Observe this method is designed to allow late
+        initialization and will raise a RuntimeError if
+        called more than once.
+        """
         if app is None:
             raise ValueError('a valid app object is required')
 
