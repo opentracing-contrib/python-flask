@@ -51,7 +51,7 @@ class FlaskTracing(opentracing.Tracer):
             if error is not None:
                 self._after_request_fn(error=error)
 
-    def set_app(self, app, traced_attributes=[]):
+    def init_app(self, app, traced_attributes=[]):
         """
         Set the app for which all requests are traced,
         optionally passing a list of attributes to include

@@ -82,7 +82,7 @@ or
     tracing = FlaskTracing(opentracing_tracer, [optional_args])
 
     # Somewhere else initialize the app *once*.
-    tracing.set_app(app, [optional_traced_attributes])
+    tracing.init_app(app, [optional_traced_attributes])
 
 
 Trace Individual Requests

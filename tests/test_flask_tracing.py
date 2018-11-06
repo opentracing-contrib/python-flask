@@ -17,7 +17,7 @@ tracing = FlaskTracing(MockTracer())
 tracing_deferred = FlaskTracing(lambda: MockTracer(),
                                 True, app, ['url'])
 tracing_late_app_set = FlaskTracing(MockTracer())
-tracing_late_app_set.set_app(app)
+tracing_late_app_set.init_app(app)
 
 
 all_tracing_objects = [

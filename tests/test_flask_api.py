@@ -39,13 +39,13 @@ class TestValues(unittest.TestCase):
         with pytest.raises(ValueError):
             FlaskTracing(start_span_cb=0)
 
-    def test_set_app_none(self):
+    def test_init_app_none(self):
         tracing = FlaskTracing()
         with pytest.raises(ValueError):
-            tracing.set_app(None)
+            tracing.init_app(None)
 
-    def test_set_app_already_registered(self):
+    def test_init_app_already_registered(self):
         app = Flask('dummy_app')
         tracing = FlaskTracing(app=app)
         with pytest.raises(RuntimeError):
-            tracing.set_app(Flask('another_dummy_app'))
+            tracing.init_app(Flask('another_dummy_app'))
