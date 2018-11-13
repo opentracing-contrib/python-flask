@@ -38,3 +38,14 @@ class TestValues(unittest.TestCase):
     def test_start_span_invalid(self):
         with pytest.raises(ValueError):
             FlaskTracing(start_span_cb=0)
+
+    def test_init_app_none(self):
+        tracing = FlaskTracing()
+        with pytest.raises(ValueError):
+            tracing.init_app(None)
+
+    def test_init_app_already_registered(self):
+        app = Flask('dummy_app')
+        tracing = FlaskTracing(app=app)
+        with pytest.raises(RuntimeError):
+            tracing.init_app(Flask('another_dummy_app'))

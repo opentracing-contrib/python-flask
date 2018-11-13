@@ -72,6 +72,22 @@ Trace All Requests
     opentracing_tracer = ## some OpenTracing tracer implementation
     tracing = FlaskTracing(opentracing_tracer, True, app, [optional_args])
 
+or
+
+.. code-block:: python
+
+    import opentracing
+    from flask_opentracing import FlaskTracing
+
+    app = Flask(__name__)
+
+    opentracing_tracer = ## some OpenTracing tracer implementation
+    tracing = FlaskTracing(opentracing_tracer, [optional_args])
+
+    # Somewhere else initialize the app *once*.
+    tracing.init_app(app, [optional_traced_attributes])
+
+
 Trace Individual Requests
 -------------------------
 
