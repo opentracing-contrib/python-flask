@@ -76,10 +76,11 @@ your MySQLdb, SQLAlchemy, Redis queries without writing boilerplate code.
 Following code shows how to create a span based on already existing one.
 
 ```python
-parent_span = tracer.get_span()
-child_span = jaeger_tracer.start_span("inside create_child_span", parent_span)
+# child_scope.span automatically inherits from the Span created
+# for this request by the Flask instrumentation.
+child_scope = jaeger_tracer.start_active_span('inside create_child_span')
 ... do some stuff
-child_span.finish()
+child_scope.close()
 ```
 
 ![traced request](https://raw.githubusercontent.com/opentracing-contrib/python-flask/example/example/img/jaeger_1.png)

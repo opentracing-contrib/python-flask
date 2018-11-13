@@ -1,7 +1,20 @@
+project := flask_opentracing
+
+pytest := PYTHONDONTWRITEBYTECODE=1 py.test --tb short -rxs \
+	--cov-report term-missing:skip-covered --cov=$(project) tests
+
 .PHONY: test publish install clean clean-build clean-pyc clean-test build upload-docs
 
 install: 
 	python setup.py install
+
+check-virtual-env:
+	@echo virtual-env: $${VIRTUAL_ENV?"Please run in virtual-env"}
+
+bootstrap: check-virtual-env
+	pip install -r requirements.txt
+	pip install -r requirements-test.txt
+	python setup.py develop
 
 clean: clean-build clean-pyc clean-test
 
@@ -25,12 +38,17 @@ clean-test:
 	rm -f coverage.xml
 	rm -fr htmlcov/
 
-test: 
-	python setup.py test
-	make -C docs doctest
+lint:
+	flake8 $(project) tests
+
+test:
+	$(pytest)
 
 build: 
 	python setup.py build
+
+docs:
+	make -C docs doctest
 
 upload-docs:
 	git submodule update --init  # for sphinx flask theme
