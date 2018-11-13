@@ -24,17 +24,16 @@ if __name__ == '__main__':
         @app.route('/log')
         @tracing.trace() # Indicate that /log endpoint should be traced
         def log():
-                parent_span = tracing.get_span(request)
                 # Extract the span information for request object.
-                with jaeger_tracer.start_span("python webserver internal span of log method",
-                                              child_of=parent_span) as span:
+                with jaeger_tracer.start_active_span(
+                        'python webserver internal span of log method') as scope:
                     # Perform some computations to be traced.
 
                     a = 1
                     b = 2
                     c = a + b
 
-                    span.log_kv({'event': 'my computer knows math!', 'result': c})
+                    scope.span.log_kv({'event': 'my computer knows math!', 'result': c})
 
                     return "log"
 
