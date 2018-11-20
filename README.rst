@@ -113,6 +113,35 @@ If you want to make an RPC and continue an existing trace, you can inject the cu
             new_request.add_header(k,v)
         ... # make request
 
+FlaskScopeManager
+-----------------
+
+By default, Flask-OpenTracing will attempt to track spans initiated by view functions in the request context.  However, to fully ensure parent-child span relationships throughout your Flask application in any deployment configuration, a FlaskScopeManager is provided.
+
+.. code-block:: python
+
+    from my_opentracing_tracer import OpenTracingTracer
+    from flask_opentracing import FlaskTracer, FlaskScopeManager
+
+    app = Flask(__name__)
+
+    opentracing_tracer = OpenTracingTracer(FlaskScopeManager())
+    # trace all requests
+    tracing = FlaskTracing(opentracing_tracer, True, app, [optional_args])
+
+    @app.route('/some_url')
+    def some_view_func():
+        helper_function()
+        ...
+        return some_view
+
+
+    def helper_function():
+        # spans created in your application will be children of parent spans
+        # automatically created for your traced view function.
+        with opentracing_tracer.start_active_span('MyChildSpan') as scope
+            scope.span.set_tag('HelpfulKey', 'HelpfulValue')
+
 Examples
 ========
 

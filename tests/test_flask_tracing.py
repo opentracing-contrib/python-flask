@@ -5,17 +5,17 @@ from flask import (Flask, request)
 import opentracing
 from opentracing.ext import tags
 from opentracing.mocktracer import MockTracer
-from flask_opentracing import FlaskTracing
+from flask import _request_ctx_stack as stack
+from flask_opentracing import FlaskTracing, FlaskScopeManager
 
 
 app = Flask(__name__)
 test_app = app.test_client()
 
 
-tracing_all = FlaskTracing(MockTracer(), True, app, ['url'])
-tracing = FlaskTracing(MockTracer())
-tracing_deferred = FlaskTracing(lambda: MockTracer(),
-                                True, app, ['url'])
+tracing_all = FlaskTracing(MockTracer(FlaskScopeManager()), True, app, ['url'])
+tracing = FlaskTracing(MockTracer(FlaskScopeManager()))
+tracing_deferred = FlaskTracing(lambda: MockTracer(), True, app, ['url'])
 
 
 def flush_spans(tcr):
@@ -56,7 +56,7 @@ def decorated_fn_with_child_span():
 
 @app.route('/wire')
 def send_request():
-    span = tracing_all.get_span()
+    span = tracing_all.tracer.active_span
     headers = {}
     tracing_all.tracer.inject(span.context,
                               opentracing.Format.TEXT_MAP,
@@ -67,9 +67,9 @@ def send_request():
 
 class TestTracing(unittest.TestCase):
     def setUp(self):
-        tracing_all._tracer.reset()
-        tracing._tracer.reset()
-        tracing_deferred._tracer.reset()
+        for tracer in (tracing_all, tracing, tracing_deferred):
+            tracer.tracer.reset()
+            flush_spans(tracer)
 
     def test_span_creation(self):
         with app.test_request_context('/test'):
@@ -78,17 +78,27 @@ class TestTracing(unittest.TestCase):
             assert not tracing.get_span(request)
             assert tracing_deferred.get_span(request)
 
-            active_span = tracing_all.tracer.active_span
-            assert tracing_all.get_span(request) is active_span
+            assert tracing_all.tracer.active_span
+            assert not tracing.tracer.active_span
+            assert tracing_deferred.tracer.active_span
 
-            flush_spans(tracing_all)
-            flush_spans(tracing_deferred)
+            active_span = tracing_all.tracer.active_span
+            tracing_all_span = getattr(
+                stack.top,
+                tracing_all.tracer.scope_manager._active_attr
+            ).span
+            assert tracing_all_span is active_span
+
+            active_span = tracing_deferred.tracer.active_span
+            assert tracing_deferred.get_span(request) is active_span
 
     def test_span_deletion(self):
         assert not tracing_all._current_scopes
+        assert not tracing_all.tracer.active_span
         assert not tracing_deferred._current_scopes
         test_app.get('/test')
         assert not tracing_all._current_scopes
+        assert not tracing_all.tracer.active_span
         assert not tracing_deferred._current_scopes
 
     def test_span_tags(self):
@@ -108,13 +118,14 @@ class TestTracing(unittest.TestCase):
             app.preprocess_request()
         with app.test_request_context('/test'):
             app.preprocess_request()
-            second_scope = tracing_all._current_scopes.pop(request)
-            assert second_scope
-            second_scope.close()
-            assert not tracing_all.get_span(request)
-        # clear current spans
-        flush_spans(tracing_all)
-        flush_spans(tracing_deferred)
+            flask_scope = tracing_all.tracer.scope_manager.active
+            tracing_scope = tracing_deferred._current_scopes.pop(request)
+            assert flask_scope
+            assert tracing_scope
+            flask_scope.close()
+            tracing_scope.close()
+            assert not tracing_all.tracer.active_span
+            assert not tracing_deferred.get_span(request)
 
     def test_decorator(self):
         with app.test_request_context('/another_test'):
@@ -123,17 +134,31 @@ class TestTracing(unittest.TestCase):
             assert len(tracing_deferred._current_scopes) == 1
             assert len(tracing_all._current_scopes) == 1
 
-            active_span = tracing_all.tracer.active_span
-            assert tracing_all.get_span(request) is active_span
+            assert not tracing.tracer.active_span
+            assert tracing_deferred.tracer.active_span
+            assert tracing_all.tracer.active_span
 
-        flush_spans(tracing)
-        flush_spans(tracing_all)
-        flush_spans(tracing_deferred)
+            active_span = tracing_all.tracer.active_span
+            tracing_all_span = getattr(
+                stack.top,
+                tracing_all.tracer.scope_manager._active_attr
+            ).span
+            assert tracing_all_span is active_span
+
+            another_active_span = tracing_deferred.tracer.active_span
+            assert tracing_deferred.get_span(request) is another_active_span
+
+        for tracer in (tracing_all, tracing, tracing_deferred):
+            flush_spans(tracer)
 
         test_app.get('/another_test')
         assert not tracing_all._current_scopes
         assert not tracing._current_scopes
         assert not tracing_deferred._current_scopes
+
+        assert not tracing_all.tracer.active_span
+        assert not tracing.tracer.active_span
+        assert not tracing_deferred.tracer.active_span
 
     def test_decorator_trace_all(self):
         # Fake we are tracing all, which should disable
@@ -154,6 +179,10 @@ class TestTracing(unittest.TestCase):
         assert len(tracing._current_scopes) == 0
         assert len(tracing_all._current_scopes) == 0
         assert len(tracing_deferred._current_scopes) == 0
+
+        assert not tracing.tracer.active_span
+        assert not tracing_all.tracer.active_span
+        assert not tracing_deferred.tracer.active_span
 
         # Registered handler.
         spans = tracing_all.tracer.finished_spans()
