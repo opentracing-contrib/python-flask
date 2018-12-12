@@ -133,9 +133,9 @@ class FlaskTracing(opentracing.Tracer):
 
         for attr in attributes:
             if hasattr(request, attr):
-                payload = str(getattr(request, attr))
-                if payload:
-                    span.set_tag(attr, payload)
+                payload = getattr(request, attr)
+                if payload not in ('', b''):  # python3
+                    span.set_tag(attr, str(payload))
 
         self._call_start_span_cb(span, request)
 
