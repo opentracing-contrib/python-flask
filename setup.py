@@ -23,14 +23,14 @@ setup(
     platforms='any',
     install_requires=[
         'Flask',
-        'opentracing>=2.0,<2.1',
+        'opentracing>=2.0,<3',
     ],
     extras_require={
         'tests': [
             'flake8<3',  # see https://github.com/zheller/flake8-quotes/issues/29
             'flake8-quotes',
             'mock',
-            'pytest>=2.7,<3',
+            'pytest>=3.6,<4',
             'pytest-cov',
         ],
     },
