@@ -40,7 +40,7 @@ class FlaskTracing(opentracing.Tracer):
 
             @app.after_request
             def end_trace(response):
-                self._after_request_fn(response)
+                self._after_request_fn(traced_attributes, response)
                 return response
 
             @app.teardown_request
@@ -139,7 +139,7 @@ class FlaskTracing(opentracing.Tracer):
 
         self._call_start_span_cb(span, request)
 
-    def _after_request_fn(self, response=None, error=None):
+    def _after_request_fn(self, attributes, response=None, error=None):
         request = stack.top.request
 
         # the pop call can fail if the request is interrupted by a
@@ -148,14 +148,22 @@ class FlaskTracing(opentracing.Tracer):
         if scope is None:
             return
 
+        span = scope.span
         if response is not None:
-            scope.span.set_tag(tags.HTTP_STATUS_CODE, response.status_code)
+            span.set_tag(tags.HTTP_STATUS_CODE, response.status_code)
         if error is not None:
-            scope.span.set_tag(tags.ERROR, True)
-            scope.span.log_kv({
+            span.set_tag(tags.ERROR, True)
+            span.log_kv({
                 'event': tags.ERROR,
                 'error.object': error,
             })
+
+
+        for attr in attributes:
+            if hasattr(response, attr):
+                payload = str(getattr(response, attr))
+                if payload:
+                    span.set_tag(attr, payload)
 
         scope.close()
 
