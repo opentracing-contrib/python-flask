@@ -135,7 +135,7 @@ class FlaskTracing(opentracing.Tracer):
             if hasattr(request, attr):
                 payload = str(getattr(request, attr))
                 if payload:
-                    span.set_tag(attr, payload)
+                    span.set_tag('request_' + attr, payload)
 
         self._call_start_span_cb(span, request)
 
@@ -163,7 +163,7 @@ class FlaskTracing(opentracing.Tracer):
             if hasattr(response, attr):
                 payload = str(getattr(response, attr))
                 if payload:
-                    span.set_tag(attr, payload)
+                    span.set_tag('response_' + attr, payload)
 
         scope.close()
 
