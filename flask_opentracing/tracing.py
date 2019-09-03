@@ -46,7 +46,7 @@ class FlaskTracing(opentracing.Tracer):
             @app.teardown_request
             def end_trace_with_error(error):
                 if error is not None:
-                    self._after_request_fn(error=error)
+                    self._after_request_fn(traced_attributes, error=error)
 
     @property
     def _tracer(self):
@@ -82,7 +82,7 @@ class FlaskTracing(opentracing.Tracer):
                     r = f(*args, **kwargs)
                     self._after_request_fn(list(attributes))
                 except Exception as e:
-                    self._after_request_fn(error=e)
+                    self._after_request_fn(list(attributes), error=e)
                     raise
 
                 self._after_request_fn(list(attributes))
