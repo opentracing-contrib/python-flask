@@ -27,10 +27,10 @@ setup(
     ],
     extras_require={
         'tests': [
-            'flake8<3',  # see https://github.com/zheller/flake8-quotes/issues/29
+            'flake8',
             'flake8-quotes',
             'mock',
-            'pytest>=3.6,<4',
+            'pytest',
             'pytest-cov',
         ],
     },
@@ -40,6 +40,14 @@ setup(
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: Implementation :: CPython',
+        'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
         'Topic :: Software Development :: Libraries :: Python Modules'
     ]
