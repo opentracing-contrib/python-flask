@@ -1,10 +1,30 @@
+dist: xenial
 language: python
 python:
-  - "2.7"
-  - "3.6"
-# command to install dependencies
+  - '2.7'
+  - '3.5'
+  - '3.6'
+  - '3.7'
+  - '3.8-dev'
+  - 'nightly'
+  - 'pypy'
+  - 'pypy3.5'
+
+stages:
+  - lint
+  - test
+
+matrix:
+  include:
+    - stage: lint
+      name: flake8
+      python: '3.7'
+  allow_failures:
+    - python: '3.8-dev'
+    - python: 'nightly'
+
 install:
-  - make bootstrap
-# command to run tests
+  - pip install tox-travis
+
 script:
-  -  make test lint
+  - tox
