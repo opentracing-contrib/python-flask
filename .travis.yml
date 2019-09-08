@@ -13,12 +13,19 @@ python:
 stages:
   - lint
   - test
+  - name: deploy
+    if: tag is present
 
 matrix:
   include:
     - stage: lint
       name: flake8
       python: '3.7'
+    - stage: deploy
+      name: Deploy to PyPI
+      python: '3.7'
+      install: skip
+      script: skip
   allow_failures:
     - python: '3.8-dev'
     - python: 'nightly'
@@ -28,3 +35,13 @@ install:
 
 script:
   - tox
+
+deploy:
+  provider: pypi
+  distributions: sdist
+  user: 'Your username'
+  password:
+    secure: 'Your encrypted password'
+  on:
+    condition: $TRAVIS_BUILD_STAGE_NAME = Deploy
+    tags: true
