@@ -158,7 +158,6 @@ class FlaskTracing(opentracing.Tracer):
                 'error.object': error,
             })
 
-
         for attr in attributes:
             if hasattr(response, attr):
                 payload = str(getattr(response, attr))
