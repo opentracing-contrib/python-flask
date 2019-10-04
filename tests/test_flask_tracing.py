@@ -156,7 +156,7 @@ class TestTracing(unittest.TestCase):
         assert len(tracing_deferred._current_scopes) == 0
 
         # Registered handler.
-        spans = tracing_all.tracer.finished_spans()
+        spans = tracing.tracer.finished_spans()
         assert len(spans) == 1
         self._verify_error(spans[0])
 
@@ -166,7 +166,7 @@ class TestTracing(unittest.TestCase):
         self._verify_error(spans[0])
 
     def _verify_error(self, span):
-        assert span.tags.get(tags.ERROR, None) is True
+        assert span.tags.get(tags.ERROR) is True
 
         assert len(span.logs) == 1
         assert span.logs[0].key_values.get('event', None) is tags.ERROR
