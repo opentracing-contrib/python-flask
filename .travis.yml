@@ -39,9 +39,9 @@ script:
 deploy:
   provider: pypi
   distributions: sdist
-  user: 'Your username'
+  user: '__token__'
   password:
-    secure: 'Your encrypted password'
+    secure: 'YkwqdS/sPOcu43pPEAz3YvkJPp+FoSZ39xCM+3wXC5K+SpJW+APn5FH7izivs5DzqRtEP/dLwxUrtk4O+IvFxMgOeRXkGUszRUCYNV819iJwXlcVtODJfdjB+B/pFz6WERh13GhVl6PsG+SBgVE4GNu8F7svCepDX7kcHw1xa+tjkSg1mzmDuZuAhth8Gkph/7LHupx5VP8p96oOViLjI98SCnGDHbmzpDVzW1GZjO5wsTuCc6YYsc0ydKxMYUjaE+7PIMqziK3FjvZj6drnR8SV6e+9kWPNYQ8kodQTfeQuXqwq7s2Va/5lx9iZ+tdBCnCBEb+ehV43M13cqk6jnkZMbC2OZ7TY5Mtm/JWZe9QNcAutdeiqqaSCuGCWP7RT+jgyJaWtHGbAlRj8loHKCFgyzhwK77N/as9oyIxQSVYBIYNtSsvgG33BJQXO9oLf85qZ/C4WkFCX2JeZLAAvMv8Pm0r1lhmtN1nKEdOl6H0VQUls9S2u7s+HnEoTu9TXQ6FiDwV3iF9lZAr1kfPsGhZyEm/rxnMBrPnbbr7puLRJwOp5u1GT0nyp9C2Bpg1XrgpmrK14mpsd0eOMYIdEMc0v1qflze+DyVSEyccj/WbvXlW788bnoGd8svapRbo2ZUf+EfUaIi/S0dzNzQJMx7BHGprpuqHkEmmUbTO8o4Q='
   on:
     condition: $TRAVIS_BUILD_STAGE_NAME = Deploy
     tags: true
