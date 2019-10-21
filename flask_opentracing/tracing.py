@@ -163,7 +163,6 @@ class FlaskTracing(opentracing.Tracer):
                 'error.object': error,
             })
 
-
         scope.close()
 
     def _call_start_span_cb(self, span, request):
