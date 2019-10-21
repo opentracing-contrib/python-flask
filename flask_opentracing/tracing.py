@@ -133,9 +133,9 @@ class FlaskTracing(opentracing.Tracer):
 
         for attr in attributes:
             if hasattr(request, attr):
-                payload = str(getattr(request, attr))
+                payload = getattr(request, attr)
                 if payload not in ('', b''):  # python3
-                    span.set_tag('request_' + attr, payload)
+                    span.set_tag('request_' + attr, str(payload))
 
         self._call_start_span_cb(span, request)
 
@@ -151,6 +151,11 @@ class FlaskTracing(opentracing.Tracer):
         span = scope.span
         if response is not None:
             span.set_tag(tags.HTTP_STATUS_CODE, response.status_code)
+            for attr in attributes:
+                if hasattr(response, attr):
+                    payload = getattr(response, attr)
+                    if payload not in ('', b''):  # python3
+                        span.set_tag('response_' + attr, str(payload))
         if error is not None:
             span.set_tag(tags.ERROR, True)
             span.log_kv({
@@ -158,11 +163,6 @@ class FlaskTracing(opentracing.Tracer):
                 'error.object': error,
             })
 
-        for attr in attributes:
-            if hasattr(response, attr):
-                payload = str(getattr(response, attr))
-                if payload not in ('', b''):  # python3
-                    span.set_tag('response_' + attr, payload)
 
         scope.close()
 
