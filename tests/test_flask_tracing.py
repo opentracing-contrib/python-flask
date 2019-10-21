@@ -36,7 +36,7 @@ def decorated_fn():
 
 
 @app.route('/another_test_simple')
-@tracing.trace()
+@tracing.trace('query_string', 'is_xhr')
 def decorated_fn_simple():
     return 'Success again'
 
@@ -101,6 +101,7 @@ class TestTracing(unittest.TestCase):
             tags.HTTP_METHOD: 'GET',
             tags.SPAN_KIND: tags.SPAN_KIND_RPC_SERVER,
             tags.HTTP_URL: 'http://localhost/another_test_simple',
+            'is_xhr': 'False',
         }
 
     def test_requests_distinct(self):
