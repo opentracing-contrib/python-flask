@@ -6,7 +6,7 @@ Flask-OpenTracing
 
 This extension provides simple integration of OpenTracing in Flask applications.
 '''
-version = open('VERSION').read()
+version = open('VERSION').read().strip()
 setup(
     name='Flask-OpenTracing',
     version=version,
@@ -17,6 +17,7 @@ setup(
     author_email='kcamenzind@lightstep.com',
     description='OpenTracing support for Flask applications',
     long_description=open('README.rst').read(),
+    long_description_content_type='text/x-rst',
     packages=['flask_opentracing', 'tests'],
     zip_safe=False,
     include_package_data=True,
@@ -46,6 +47,7 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
