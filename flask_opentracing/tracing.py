@@ -2,6 +2,8 @@ import opentracing
 from opentracing.ext import tags
 from flask import _request_ctx_stack as stack
 
+from .scope_manager import FlaskScopeManager
+
 
 class FlaskTracing(opentracing.Tracer):
     """
@@ -80,7 +82,6 @@ class FlaskTracing(opentracing.Tracer):
                 self._before_request_fn(list(attributes))
                 try:
                     r = f(*args, **kwargs)
-                    self._after_request_fn()
                 except Exception as e:
                     self._after_request_fn(error=e)
                     raise
@@ -140,11 +141,12 @@ class FlaskTracing(opentracing.Tracer):
         self._call_start_span_cb(span, request)
 
     def _after_request_fn(self, response=None, error=None):
-        request = stack.top.request
-
         # the pop call can fail if the request is interrupted by a
         # `before_request` method so we need a default
-        scope = self._current_scopes.pop(request, None)
+        scope = self._current_scopes.pop(stack.top.request, None)
+
+        if isinstance(self.tracer.scope_manager, FlaskScopeManager):
+            scope = self.tracer.scope_manager.active
         if scope is None:
             return
 
