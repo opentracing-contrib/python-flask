@@ -80,7 +80,7 @@ class FlaskTracing(opentracing.Tracer):
                 self._before_request_fn(list(attributes))
                 try:
                     r = f(*args, **kwargs)
-                    self._after_request_fn()
+                    self._after_request_fn(response=r)
                 except Exception as e:
                     self._after_request_fn(error=e)
                     raise
