@@ -128,7 +128,7 @@ Breaking changes from 0.x
 
 Starting with the 1.0 version, a few changes have taken place from previous versions:
 
-* ``FlaskTracer`` has been renamed to ``FlaskTracing``, although ``FlaskTracing``
+* ``FlaskTracer`` has been renamed to ``FlaskTracing``, although ``FlaskTracer``
   can be used still as a deprecated name.
 * When passing an ``Application`` object at ``FlaskTracing`` creation time,
   ``trace_all_requests`` defaults to ``True``.
