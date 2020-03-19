@@ -24,7 +24,7 @@ setup(
     platforms='any',
     install_requires=[
         'Flask',
-        'opentracing>=2.0,<3',
+        'opentracing>=2.0,<2.4',
     ],
     extras_require={
         'tests': [
