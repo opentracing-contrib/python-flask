@@ -77,6 +77,12 @@ target/
 # celery beat schedule file
 celerybeat-schedule
 
+# pytest
+.pytest_cache
+
+# vscode
+.vscode
+
 # dotenv
 .env
 
