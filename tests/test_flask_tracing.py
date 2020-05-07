@@ -36,7 +36,7 @@ def decorated_fn():
 
 
 @app.route('/another_test_simple')
-@tracing.trace('query_string', 'is_xhr')
+@tracing.trace('method',)
 def decorated_fn_simple():
     return 'Success again'
 
@@ -102,7 +102,7 @@ class TestTracing(unittest.TestCase):
         assert not tracing_deferred._current_scopes
 
     def test_span_tags(self):
-        test_app.get('/another_test_simple')
+        test_app.get('/another_test_simple?123')
 
         spans = tracing._tracer.finished_spans()
         assert len(spans) == 1
@@ -111,7 +111,7 @@ class TestTracing(unittest.TestCase):
             tags.HTTP_METHOD: 'GET',
             tags.SPAN_KIND: tags.SPAN_KIND_RPC_SERVER,
             tags.HTTP_URL: 'http://localhost/another_test_simple',
-            'is_xhr': 'False',
+            'method': 'GET',
         }
 
     def test_requests_distinct(self):
@@ -196,14 +196,10 @@ class TestTracing(unittest.TestCase):
         self._verify_error(spans[0])
 
     def _verify_error(self, span):
-        assert span.tags.get(tags.ERROR) is True
-
-        assert len(span.logs) == 1
-        assert span.logs[0].key_values.get('event', None) is tags.ERROR
-        assert isinstance(
-                span.logs[0].key_values.get('error.object', None),
-                RuntimeError
-        )
+        assert span.tags.get(tags.ERROR, None) is True
+        assert span.tags.get('sfx.error.message', None) == 'Should not happen' 
+        assert span.tags.get('sfx.error.kind', None) == 'RuntimeError' 
+        assert span.tags.get('sfx.error.object', None) == '<class \'RuntimeError\'>' 
 
     def test_over_wire(self):
         rv = test_app.get('/wire')
