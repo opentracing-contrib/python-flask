@@ -101,7 +101,6 @@ class TestTracing(unittest.TestCase):
             tags.HTTP_METHOD: 'GET',
             tags.SPAN_KIND: tags.SPAN_KIND_RPC_SERVER,
             tags.HTTP_URL: 'http://localhost/another_test_simple',
-            'is_xhr': 'False',
         }
 
     def test_requests_distinct(self):
