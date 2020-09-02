@@ -1,3 +1,4 @@
+import functools
 import opentracing
 from opentracing.ext import tags
 from flask import _request_ctx_stack as stack
@@ -73,6 +74,7 @@ class FlaskTracing(opentracing.Tracer):
         (strings) to be set as tags on the created span
         """
         def decorator(f):
+            @functools.wraps(f)
             def wrapper(*args, **kwargs):
                 if self._trace_all_requests:
                     return f(*args, **kwargs)
@@ -88,7 +90,6 @@ class FlaskTracing(opentracing.Tracer):
                 self._after_request_fn()
                 return r
 
-            wrapper.__name__ = f.__name__
             return wrapper
         return decorator
 
