@@ -8,13 +8,13 @@ This extension provides simple integration of OpenTracing in Flask applications.
 '''
 version = open('VERSION').read().strip()
 setup(
-    name='Flask-OpenTracing',
+    name='signalfx-instrumentation-flask',
     version=version,
-    url='http://github.com/opentracing-contrib/python-flask',
-    download_url='https://github.com/opentracing-contrib/python-flask/tarball/'+version,
+    url='http://github.com/signalfx/python-flask',
+    download_url='https://github.com/signalfx/python-flask/tarball/'+version,
     license='BSD',
-    author='Kathy Camenzind',
-    author_email='kcamenzind@lightstep.com',
+    author='SignalFx, Inc.',
+    author_email='signalfx-oss@splunk.com',
     description='OpenTracing support for Flask applications',
     long_description=open('README.rst').read(),
     long_description_content_type='text/x-rst',

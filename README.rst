@@ -21,7 +21,7 @@ Run the following command:
 
 .. code-block:: 
 
-    $ pip install Flask-Opentracing
+    $ pip install signalfx-instrumentation-flask
 
 Usage
 =====
