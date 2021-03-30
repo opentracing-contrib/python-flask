@@ -11,14 +11,22 @@ class FlaskTracing(opentracing.Tracer):
 
     @param tracer the OpenTracing tracer implementation to trace requests with
     """
-    def __init__(self, tracer=None, trace_all_requests=None, app=None,
-                 traced_attributes=[], start_span_cb=None):
+
+    def __init__(
+        self,
+        tracer=None,
+        trace_all_requests=None,
+        app=None,
+        traced_attributes=[],
+        start_span_cb=None,
+        trace_response_header=False,
+    ):
 
         if start_span_cb is not None and not callable(start_span_cb):
-            raise ValueError('start_span_cb is not callable')
+            raise ValueError("start_span_cb is not callable")
 
         if trace_all_requests is True and app is None:
-            raise ValueError('trace_all_requests=True requires an app object')
+            raise ValueError("trace_all_requests=True requires an app object")
 
         if trace_all_requests is None:
             trace_all_requests = False if app is None else True
@@ -31,11 +39,13 @@ class FlaskTracing(opentracing.Tracer):
             self.__tracer_getter = tracer
 
         self._trace_all_requests = trace_all_requests
+        self._trace_response_header = trace_response_header
         self._start_span_cb = start_span_cb
         self._current_scopes = {}
 
         # tracing all requests requires that app != None
         if self._trace_all_requests:
+
             @app.before_request
             def start_trace():
                 self._before_request_fn(traced_attributes)
@@ -74,6 +84,7 @@ class FlaskTracing(opentracing.Tracer):
         @param attributes any number of flask.Request attributes
         (strings) to be set as tags on the created span
         """
+
         def decorator(f):
             def wrapper(*args, **kwargs):
                 if self._trace_all_requests:
@@ -91,6 +102,7 @@ class FlaskTracing(opentracing.Tracer):
 
             wrapper.__name__ = f.__name__
             return wrapper
+
         return decorator
 
     def get_span(self, request=None):
@@ -116,18 +128,18 @@ class FlaskTracing(opentracing.Tracer):
             headers[k.lower()] = v
 
         try:
-            span_ctx = self.tracer.extract(opentracing.Format.HTTP_HEADERS,
-                                           headers)
-            scope = self.tracer.start_active_span(operation_name,
-                                                  child_of=span_ctx)
-        except (opentracing.InvalidCarrierException,
-                opentracing.SpanContextCorruptedException):
+            span_ctx = self.tracer.extract(opentracing.Format.HTTP_HEADERS, headers)
+            scope = self.tracer.start_active_span(operation_name, child_of=span_ctx)
+        except (
+            opentracing.InvalidCarrierException,
+            opentracing.SpanContextCorruptedException,
+        ):
             scope = self.tracer.start_active_span(operation_name)
 
         self._current_scopes[request] = scope
 
         span = scope.span
-        span.set_tag(tags.COMPONENT, 'Flask')
+        span.set_tag(tags.COMPONENT, "Flask")
         span.set_tag(tags.HTTP_METHOD, request.method)
         span.set_tag(tags.HTTP_URL, request.base_url)
         span.set_tag(tags.SPAN_KIND, tags.SPAN_KIND_RPC_SERVER)
@@ -135,7 +147,7 @@ class FlaskTracing(opentracing.Tracer):
         for attr in attributes:
             if hasattr(request, attr):
                 payload = getattr(request, attr)
-                if payload not in ('', b''):  # python3
+                if payload not in ("", b""):  # python3
                     span.set_tag(attr, str(payload))
 
         self._call_start_span_cb(span, request)
@@ -152,11 +164,27 @@ class FlaskTracing(opentracing.Tracer):
 
         if response is not None:
             scope.span.set_tag(tags.HTTP_STATUS_CODE, response.status_code)
+
+            if self._trace_response_header:
+                expose_headers = response.headers.get(
+                    "Access-Control-Expose-Headers", ""
+                )
+                if expose_headers:
+                    expose_headers += ","
+                expose_headers += "Server-Timing"
+                response.headers["Access-Control-Expose-Headers"] = expose_headers
+                response.headers[
+                    "Server-Timing"
+                ] = 'traceparent;desc="00-{trace_id}-{span_id}-01"'.format(
+                    trace_id="{:016x}".format(scope.span.context.trace_id),
+                    span_id="{:016x}".format(scope.span.context.span_id),
+                )
+
         if error is not None:
             scope.span.set_tag(tags.ERROR, True)
-            scope.span.set_tag('sfx.error.message', str(error))
-            scope.span.set_tag('sfx.error.object', str(error.__class__))
-            scope.span.set_tag('sfx.error.kind', error.__class__.__name__)
+            scope.span.set_tag("sfx.error.message", str(error))
+            scope.span.set_tag("sfx.error.object", str(error.__class__))
+            scope.span.set_tag("sfx.error.kind", error.__class__.__name__)
 
         scope.close()
 

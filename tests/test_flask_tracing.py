@@ -1,7 +1,7 @@
 import mock
 import unittest
 
-from flask import (Flask, request)
+from flask import Flask, request
 import opentracing
 from opentracing.ext import tags
 from opentracing.mocktracer import MockTracer
@@ -13,9 +13,11 @@ app = Flask(__name__)
 test_app = app.test_client()
 
 
-tracing_all = FlaskTracing(MockTracer(FlaskScopeManager()), True, app, ['url'])
+tracing_all = FlaskTracing(
+    MockTracer(FlaskScopeManager()), True, app, ["url"], None, True
+)
 tracing = FlaskTracing(MockTracer(FlaskScopeManager()))
-tracing_deferred = FlaskTracing(lambda: MockTracer(), True, app, ['url'])
+tracing_deferred = FlaskTracing(lambda: MockTracer(), True, app, ["url"])
 
 
 def flush_spans(tcr):
@@ -24,44 +26,44 @@ def flush_spans(tcr):
     tcr._current_scopes = {}
 
 
-@app.route('/test')
+@app.route("/test")
 def check_test_works():
-    return 'Success'
+    return "Success"
 
 
-@app.route('/another_test')
-@tracing.trace('url', 'url_rule')
+@app.route("/another_test")
+@tracing.trace("url", "url_rule")
 def decorated_fn():
-    return 'Success again'
+    return "Success again"
 
 
-@app.route('/another_test_simple')
-@tracing.trace('method',)
+@app.route("/another_test_simple")
+@tracing.trace(
+    "method",
+)
 def decorated_fn_simple():
-    return 'Success again'
+    return "Success again"
 
 
-@app.route('/error_test')
+@app.route("/error_test")
 @tracing.trace()
 def decorated_fn_with_error():
-    raise RuntimeError('Should not happen')
+    raise RuntimeError("Should not happen")
 
 
-@app.route('/decorated_child_span_test')
+@app.route("/decorated_child_span_test")
 @tracing.trace()
 def decorated_fn_with_child_span():
-    with tracing.tracer.start_active_span('child'):
-        return 'Success'
+    with tracing.tracer.start_active_span("child"):
+        return "Success"
 
 
-@app.route('/wire')
+@app.route("/wire")
 def send_request():
     span = tracing_all.tracer.active_span
     headers = {}
-    tracing_all.tracer.inject(span.context,
-                              opentracing.Format.TEXT_MAP,
-                              headers)
-    rv = test_app.get('/test', headers=headers)
+    tracing_all.tracer.inject(span.context, opentracing.Format.TEXT_MAP, headers)
+    rv = test_app.get("/test", headers=headers)
     return str(rv.status_code)
 
 
@@ -72,7 +74,7 @@ class TestTracing(unittest.TestCase):
             flush_spans(tracer)
 
     def test_span_creation(self):
-        with app.test_request_context('/test'):
+        with app.test_request_context("/test"):
             app.preprocess_request()
             assert tracing_all.get_span(request)
             assert not tracing.get_span(request)
@@ -84,8 +86,7 @@ class TestTracing(unittest.TestCase):
 
             active_span = tracing_all.tracer.active_span
             tracing_all_span = getattr(
-                stack.top,
-                tracing_all.tracer.scope_manager._active_attr
+                stack.top, tracing_all.tracer.scope_manager._active_attr
             ).span
             assert tracing_all_span is active_span
 
@@ -96,28 +97,42 @@ class TestTracing(unittest.TestCase):
         assert not tracing_all._current_scopes
         assert not tracing_all.tracer.active_span
         assert not tracing_deferred._current_scopes
-        test_app.get('/test')
+        test_app.get("/test")
         assert not tracing_all._current_scopes
         assert not tracing_all.tracer.active_span
         assert not tracing_deferred._current_scopes
 
     def test_span_tags(self):
-        test_app.get('/another_test_simple?123')
+        test_app.get("/another_test_simple?123")
 
         spans = tracing._tracer.finished_spans()
         assert len(spans) == 1
         assert spans[0].tags == {
-            tags.COMPONENT: 'Flask',
-            tags.HTTP_METHOD: 'GET',
+            tags.COMPONENT: "Flask",
+            tags.HTTP_METHOD: "GET",
             tags.SPAN_KIND: tags.SPAN_KIND_RPC_SERVER,
-            tags.HTTP_URL: 'http://localhost/another_test_simple',
-            'method': 'GET',
+            tags.HTTP_URL: "http://localhost/another_test_simple",
+            "method": "GET",
         }
 
+    def test_response_headers(self):
+        resp = test_app.get("/another_test_simple?123")
+        print(resp.headers)
+
+        spans = tracing_all._tracer.finished_spans()
+        assert len(spans) == 1
+        span = spans[0]
+        assert resp.headers[
+            "Server-Timing"
+        ] == 'traceparent;desc="00-{trace_id}-{span_id}-01"'.format(
+            trace_id="{:016x}".format(span.context.trace_id),
+            span_id="{:016x}".format(span.context.span_id),
+        )
+
     def test_requests_distinct(self):
-        with app.test_request_context('/test'):
+        with app.test_request_context("/test"):
             app.preprocess_request()
-        with app.test_request_context('/test'):
+        with app.test_request_context("/test"):
             app.preprocess_request()
             flask_scope = tracing_all.tracer.scope_manager.active
             tracing_scope = tracing_deferred._current_scopes.pop(request)
@@ -129,7 +144,7 @@ class TestTracing(unittest.TestCase):
             assert not tracing_deferred.get_span(request)
 
     def test_decorator(self):
-        with app.test_request_context('/another_test'):
+        with app.test_request_context("/another_test"):
             app.preprocess_request()
             assert not tracing.get_span(request)
             assert len(tracing_deferred._current_scopes) == 1
@@ -141,8 +156,7 @@ class TestTracing(unittest.TestCase):
 
             active_span = tracing_all.tracer.active_span
             tracing_all_span = getattr(
-                stack.top,
-                tracing_all.tracer.scope_manager._active_attr
+                stack.top, tracing_all.tracer.scope_manager._active_attr
             ).span
             assert tracing_all_span is active_span
 
@@ -152,7 +166,7 @@ class TestTracing(unittest.TestCase):
         for tracer in (tracing_all, tracing, tracing_deferred):
             flush_spans(tracer)
 
-        test_app.get('/another_test')
+        test_app.get("/another_test")
         assert not tracing_all._current_scopes
         assert not tracing._current_scopes
         assert not tracing_deferred._current_scopes
@@ -164,16 +178,16 @@ class TestTracing(unittest.TestCase):
     def test_decorator_trace_all(self):
         # Fake we are tracing all, which should disable
         # tracing through our decorator.
-        with mock.patch.object(tracing, '_trace_all_requests', new=True):
-            rv = test_app.get('/another_test_simple')
-            assert '200' in str(rv.status_code)
+        with mock.patch.object(tracing, "_trace_all_requests", new=True):
+            rv = test_app.get("/another_test_simple")
+            assert "200" in str(rv.status_code)
 
         spans = tracing.tracer.finished_spans()
         assert len(spans) == 0
 
     def test_error(self):
         try:
-            test_app.get('/error_test')
+            test_app.get("/error_test")
         except RuntimeError:
             pass
 
@@ -197,13 +211,13 @@ class TestTracing(unittest.TestCase):
 
     def _verify_error(self, span):
         assert span.tags.get(tags.ERROR, None) is True
-        assert span.tags.get('sfx.error.message', None) == 'Should not happen' 
-        assert span.tags.get('sfx.error.kind', None) == 'RuntimeError' 
-        assert span.tags.get('sfx.error.object', None) == '<class \'RuntimeError\'>' 
+        assert span.tags.get("sfx.error.message", None) == "Should not happen"
+        assert span.tags.get("sfx.error.kind", None) == "RuntimeError"
+        assert span.tags.get("sfx.error.object", None) == "<class 'RuntimeError'>"
 
     def test_over_wire(self):
-        rv = test_app.get('/wire')
-        assert '200' in str(rv.status_code)
+        rv = test_app.get("/wire")
+        assert "200" in str(rv.status_code)
 
         spans = tracing_all.tracer.finished_spans()
         assert len(spans) == 2
@@ -211,8 +225,8 @@ class TestTracing(unittest.TestCase):
         assert spans[0].parent_id == spans[1].context.span_id
 
     def test_child_span(self):
-        rv = test_app.get('/decorated_child_span_test')
-        assert '200' in str(rv.status_code)
+        rv = test_app.get("/decorated_child_span_test")
+        assert "200" in str(rv.status_code)
 
         spans = tracing.tracer.finished_spans()
         assert len(spans) == 2
@@ -223,27 +237,25 @@ class TestTracing(unittest.TestCase):
 class TestTracingStartSpanCallback(unittest.TestCase):
     def test_simple(self):
         def start_span_cb(span, request):
-            span.set_tag('component', 'not-flask')
-            span.set_tag('mytag', 'myvalue')
+            span.set_tag("component", "not-flask")
+            span.set_tag("mytag", "myvalue")
 
-        tracing = FlaskTracing(MockTracer(), True, app,
-                               start_span_cb=start_span_cb)
-        rv = test_app.get('/test')
-        assert '200' in str(rv.status_code)
+        tracing = FlaskTracing(MockTracer(), True, app, start_span_cb=start_span_cb)
+        rv = test_app.get("/test")
+        assert "200" in str(rv.status_code)
 
         spans = tracing.tracer.finished_spans()
         assert len(spans) == 1
-        assert spans[0].tags.get(tags.COMPONENT, None) == 'not-flask'
-        assert spans[0].tags.get('mytag', None) == 'myvalue'
+        assert spans[0].tags.get(tags.COMPONENT, None) == "not-flask"
+        assert spans[0].tags.get("mytag", None) == "myvalue"
 
     def test_error(self):
         def start_span_cb(span, request):
-            raise RuntimeError('Should not happen')
+            raise RuntimeError("Should not happen")
 
-        tracing = FlaskTracing(MockTracer(), True, app,
-                               start_span_cb=start_span_cb)
-        rv = test_app.get('/test')
-        assert '200' in str(rv.status_code)
+        tracing = FlaskTracing(MockTracer(), True, app, start_span_cb=start_span_cb)
+        rv = test_app.get("/test")
+        assert "200" in str(rv.status_code)
 
         spans = tracing.tracer.finished_spans()
         assert len(spans) == 1
