@@ -12,6 +12,7 @@ class FlaskScopeManager(ThreadLocalScopeManager):
     the opentracing.Scope in a Flask RequestContext, made accessible
     via flask._request_ctx_stack.
     """
+
     @property
     def _context(self):
         # Default to ThreadLocalScopeManager._tls_scope for usage outside
@@ -27,7 +28,7 @@ class FlaskScopeManager(ThreadLocalScopeManager):
         opentracing.Scope.  Necessary in cases of multiple tracers,
         to prevent scope creep.
         """
-        return '__ot_{0}'.format(id(self))
+        return "__ot_{0}".format(id(self))
 
     def activate(self, span, finish_on_close):
         """
@@ -55,7 +56,6 @@ class FlaskScopeManager(ThreadLocalScopeManager):
 
 
 class _FlaskScope(Scope):
-
     def __init__(self, manager, span, finish_on_close):
         super(_FlaskScope, self).__init__(manager, span)
         self._finish_on_close = finish_on_close
@@ -68,5 +68,4 @@ class _FlaskScope(Scope):
         if self._finish_on_close:
             self.span.finish()
 
-        setattr(self.manager._context, self.manager._active_attr,
-                self._to_restore)
+        setattr(self.manager._context, self.manager._active_attr, self._to_restore)

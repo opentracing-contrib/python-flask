@@ -17,13 +17,13 @@ class TestValues(unittest.TestCase):
 
     def test_global_tracer(self):
         tracing = FlaskTracing()
-        with mock.patch('opentracing.tracer'):
+        with mock.patch("opentracing.tracer"):
             assert tracing.tracer is opentracing.tracer
             opentracing.tracer = object()
             assert tracing.tracer is opentracing.tracer
 
     def test_trace_all_requests(self):
-        app = Flask('dummy_app')
+        app = Flask("dummy_app")
         tracing = FlaskTracing(app=app)
         assert tracing._trace_all_requests is True
 
