@@ -117,6 +117,10 @@ class FlaskTracing(opentracing.Tracer):
         try:
             span_ctx = self.tracer.extract(opentracing.Format.HTTP_HEADERS,
                                            headers)
+
+            # rookout addition: adding the client ip address to the span context
+            span_ctx.baggage = {"remote_addr": request.remote_addr}
+
             scope = self.tracer.start_active_span(operation_name,
                                                   child_of=span_ctx)
         except (opentracing.InvalidCarrierException,
