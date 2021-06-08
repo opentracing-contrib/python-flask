@@ -131,6 +131,9 @@ class FlaskTracing(opentracing.Tracer):
         span.set_tag(tags.HTTP_URL, request.base_url)
         span.set_tag(tags.SPAN_KIND, tags.SPAN_KIND_RPC_SERVER)
 
+        # rookout addition: adding the client ip address as a tag
+        span.set_tag("remote_addr", request.remote_addr)
+
         for attr in attributes:
             if hasattr(request, attr):
                 payload = getattr(request, attr)
