@@ -132,7 +132,7 @@ class FlaskTracing(opentracing.Tracer):
         span.set_tag(tags.SPAN_KIND, tags.SPAN_KIND_RPC_SERVER)
 
         # rookout addition: adding the client ip address to the spanContext baggage
-        span.set_baggage_item(set_baggage_item)
+        span.set_baggage_item("remote_addr", request.remote_addr)
 
         for attr in attributes:
             if hasattr(request, attr):
