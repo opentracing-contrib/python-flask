@@ -115,8 +115,7 @@ class FlaskTracing(opentracing.Tracer):
             headers[k.lower()] = v
 
         try:
-            span_ctx = self.tracer.extract(opentracing.Format.HTTP_HEADERS,
-                                           headers)
+            span_ctx = self.tracer.inject("remote_addr", request.remote_addr)
 
             # rookout addition: adding the client ip address to the span context
             span_ctx.baggage["remote_addr"] = request.remote_addr
