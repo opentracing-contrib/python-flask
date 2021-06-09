@@ -115,6 +115,8 @@ class FlaskTracing(opentracing.Tracer):
             headers[k.lower()] = v
 
         try:
+            span_ctx = self.tracer.extract(opentracing.Format.HTTP_HEADERS,
+                                           headers)
             scope = self.tracer.start_active_span(operation_name,
                                                   child_of=span_ctx)
         except (opentracing.InvalidCarrierException,
