@@ -133,9 +133,8 @@ class FlaskTracing(opentracing.Tracer):
 
         # rookout addition: adding the client ip address to the spanContext baggage
         span.set_baggage_item("remote_addr", request.remote_addr)
-        span.set_baggage_item("http_x_forwarded_for", getattr(request.headers.environ, "HTTP_X_FORWARDED_FOR", ""))
-        span.set_baggage_item("test", getattr(request.headers.environ, "CONTENT_TYPE", ""))
-
+        span.set_baggage_item("http_x_forwarded_for", fr.headers.get("HTTP_X_FORWARDED_FOR", ""))
+        span.set_baggage_item("CONTENT_TYPE", fr.headers.get("CONTENT_TYPE", ""))
 
         for attr in attributes:
             if hasattr(request, attr):
