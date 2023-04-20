@@ -41,6 +41,11 @@ Trace All Requests
     opentracing_tracer = ## some OpenTracing tracer implementation
     tracing = FlaskTracing(opentracing_tracer, True, app, [optional_args])
 
+It is possible to exclude paths from tracing by adding them in the parameter `exluded_paths`:
+
+.. code-block:: python
+    tracing = FlaskTracing(opentracing_tracer, True, app, [optional_args], exluded_paths=['/metrics', '/healthz'])
+
 Trace Individual Requests
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
