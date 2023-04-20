@@ -10,7 +10,7 @@ class FlaskTracing(opentracing.Tracer):
     @param tracer the OpenTracing tracer implementation to trace requests with
     """
     def __init__(self, tracer=None, trace_all_requests=None, app=None,
-                 traced_attributes=[], start_span_cb=None):
+                 traced_attributes=[], start_span_cb=None, excluded_paths=None):
 
         if start_span_cb is not None and not callable(start_span_cb):
             raise ValueError('start_span_cb is not callable')
@@ -20,6 +20,12 @@ class FlaskTracing(opentracing.Tracer):
 
         if trace_all_requests is None:
             trace_all_requests = False if app is None else True
+
+        if (trace_all_requests is None or not trace_all_requests) and excluded_paths is not None:
+            raise ValueError('excluded_paths only makes sense when trace_all_requests is True')
+
+        if excluded_paths is None:
+            excluded_paths = [] if trace_all_requests is True else None
 
         if not callable(tracer):
             self.__tracer = tracer
@@ -31,6 +37,7 @@ class FlaskTracing(opentracing.Tracer):
         self._trace_all_requests = trace_all_requests
         self._start_span_cb = start_span_cb
         self._current_scopes = {}
+        self._excluded_paths = excluded_paths
 
         # tracing all requests requires that app != None
         if self._trace_all_requests:
@@ -109,6 +116,8 @@ class FlaskTracing(opentracing.Tracer):
 
     def _before_request_fn(self, attributes):
         request = stack.top.request
+        if request.path in self._excluded_paths:
+            return
         operation_name = request.endpoint
         headers = {}
         for k, v in request.headers:
@@ -141,6 +150,8 @@ class FlaskTracing(opentracing.Tracer):
 
     def _after_request_fn(self, response=None, error=None):
         request = stack.top.request
+        if request.path in self._excluded_paths:
+            return
 
         # the pop call can fail if the request is interrupted by a
         # `before_request` method so we need a default
