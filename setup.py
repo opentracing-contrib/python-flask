@@ -33,6 +33,7 @@ setup(
             'mock',
             'pytest',
             'pytest-cov',
+            'tox',
         ],
     },
     classifiers=[

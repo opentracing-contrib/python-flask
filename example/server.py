@@ -1,3 +1,10 @@
+import sys
+if sys.version_info[:2] >= (3, 10):
+    # compat for Python written pre-3.10
+    import collections
+    import collections.abc
+    collections.MutableMapping = collections.abc.MutableMapping
+
 import logging
 from jaeger_client import Config
 from flask_opentracing import FlaskTracing
