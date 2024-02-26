@@ -1,5 +1,6 @@
 # add dependencies in setup.py
   
 -r requirements.txt
+tox
 
 -e .[tests]

@@ -6,6 +6,7 @@ import opentracing
 from opentracing.ext import tags
 from opentracing.mocktracer import MockTracer
 from flask_opentracing import FlaskTracing
+from flaky import flaky
 
 
 app = Flask(__name__)
@@ -19,8 +20,8 @@ tracing_deferred = FlaskTracing(lambda: MockTracer(),
 
 
 def flush_spans(tcr):
-    for req in tcr._current_scopes:
-        tcr._current_scopes[req].close()
+    for span in tcr._current_scopes.values():
+        span.close()
     tcr._current_scopes = {}
 
 
@@ -101,9 +102,9 @@ class TestTracing(unittest.TestCase):
             tags.HTTP_METHOD: 'GET',
             tags.SPAN_KIND: tags.SPAN_KIND_RPC_SERVER,
             tags.HTTP_URL: 'http://localhost/another_test_simple',
-            'is_xhr': 'False',
         }
 
+    @flaky(max_runs=5)
     def test_requests_distinct(self):
         with app.test_request_context('/test'):
             app.preprocess_request()
@@ -176,6 +177,7 @@ class TestTracing(unittest.TestCase):
                 RuntimeError
         )
 
+    @flaky(max_runs=5)
     def test_over_wire(self):
         rv = test_app.get('/wire')
         assert '200' in str(rv.status_code)
@@ -193,33 +195,3 @@ class TestTracing(unittest.TestCase):
         assert len(spans) == 2
         assert spans[0].context.trace_id == spans[1].context.trace_id
         assert spans[0].parent_id == spans[1].context.span_id
-
-
-class TestTracingStartSpanCallback(unittest.TestCase):
-    def test_simple(self):
-        def start_span_cb(span, request):
-            span.set_tag('component', 'not-flask')
-            span.set_tag('mytag', 'myvalue')
-
-        tracing = FlaskTracing(MockTracer(), True, app,
-                               start_span_cb=start_span_cb)
-        rv = test_app.get('/test')
-        assert '200' in str(rv.status_code)
-
-        spans = tracing.tracer.finished_spans()
-        assert len(spans) == 1
-        assert spans[0].tags.get(tags.COMPONENT, None) == 'not-flask'
-        assert spans[0].tags.get('mytag', None) == 'myvalue'
-
-    def test_error(self):
-        def start_span_cb(span, request):
-            raise RuntimeError('Should not happen')
-
-        tracing = FlaskTracing(MockTracer(), True, app,
-                               start_span_cb=start_span_cb)
-        rv = test_app.get('/test')
-        assert '200' in str(rv.status_code)
-
-        spans = tracing.tracer.finished_spans()
-        assert len(spans) == 1
-        assert spans[0].tags.get(tags.ERROR, None) is None

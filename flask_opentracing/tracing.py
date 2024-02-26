@@ -1,6 +1,6 @@
 import opentracing
 from opentracing.ext import tags
-from flask import _request_ctx_stack as stack
+from flask import request as flask_current_request
 
 
 class FlaskTracing(opentracing.Tracer):
@@ -101,14 +101,14 @@ class FlaskTracing(opentracing.Tracer):
 
         @param request the request to get the span from
         """
-        if request is None and stack.top:
-            request = stack.top.request
+        if request is None:
+            request = flask_current_request
 
         scope = self._current_scopes.get(request, None)
         return None if scope is None else scope.span
 
     def _before_request_fn(self, attributes):
-        request = stack.top.request
+        request = flask_current_request
         operation_name = request.endpoint
         headers = {}
         for k, v in request.headers:
@@ -140,7 +140,7 @@ class FlaskTracing(opentracing.Tracer):
         self._call_start_span_cb(span, request)
 
     def _after_request_fn(self, response=None, error=None):
-        request = stack.top.request
+        request = flask_current_request
 
         # the pop call can fail if the request is interrupted by a
         # `before_request` method so we need a default
