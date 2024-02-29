@@ -1,7 +1,7 @@
 import mock
 import unittest
 
-from flask import (Flask, request)
+from flask import (Flask, Response, request)
 import opentracing
 from opentracing.ext import tags
 from opentracing.mocktracer import MockTracer
@@ -27,32 +27,32 @@ def flush_spans(tcr):
 
 @app.route('/test')
 def check_test_works():
-    return 'Success'
+    return Response('Success')
 
 
 @app.route('/another_test')
 @tracing.trace('url', 'url_rule')
 def decorated_fn():
-    return 'Success again'
+    return Response('Success again')
 
 
 @app.route('/another_test_simple')
 @tracing.trace('query_string', 'is_xhr')
 def decorated_fn_simple():
-    return 'Success again'
+    return Response('Success again')
 
 
 @app.route('/error_test')
 @tracing.trace()
 def decorated_fn_with_error():
-    raise RuntimeError('Should not happen')
+    raise RuntimeError('Intentional testing exception')
 
 
 @app.route('/decorated_child_span_test')
 @tracing.trace()
 def decorated_fn_with_child_span():
     with tracing.tracer.start_active_span('child'):
-        return 'Success'
+        return Response('Success')
 
 
 @app.route('/wire')
@@ -93,7 +93,7 @@ class TestTracing(unittest.TestCase):
         assert not tracing_deferred._current_scopes
 
     def test_span_tags(self):
-        test_app.get('/another_test_simple')
+        response = test_app.get('/another_test_simple')
 
         spans = tracing._tracer.finished_spans()
         assert len(spans) == 1
@@ -102,6 +102,7 @@ class TestTracing(unittest.TestCase):
             tags.HTTP_METHOD: 'GET',
             tags.SPAN_KIND: tags.SPAN_KIND_RPC_SERVER,
             tags.HTTP_URL: 'http://localhost/another_test_simple',
+            tags.HTTP_STATUS_CODE: response.status_code,
         }
 
     @flaky(max_runs=5)
